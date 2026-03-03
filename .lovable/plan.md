@@ -1,83 +1,85 @@
 
 
-# Sakk-Sziget Visual & UX Overhaul Plan
+# 3D Chess Island Transformation Plan
 
-This is a major visual and functional upgrade across the entire app. The work breaks down into 5 areas.
+## Overview
+Replace the current 2D SVG island map and sandbox with a full 3D environment using `@react-three/fiber@^8.18` and `@react-three/drei@^9.122.0` (+ `three@^0.160`). The Parent Dashboard, Quizzes, and Auth pages remain 2D HTML.
 
----
+## New Dependencies
+- `three@^0.160.0`
+- `@react-three/fiber@^8.18.0`
+- `@react-three/drei@^9.122.0`
 
-## 1. Isometric Island Map Redesign (`IslandMap.tsx`)
+## Implementation
 
-**Current:** Flat SVG ellipses with character buttons scattered on percentage positions.
+### 1. 3D Scene Infrastructure
+**New file: `src/components/3d/SceneSetup.tsx`**
+- Reusable `<Canvas>` wrapper with orthographic camera (isometric angle ~35° X, 45° Y rotation)
+- `AmbientLight` (intensity 0.6) + `DirectionalLight` with soft shadows
+- `OrbitControls` from drei — limited rotation (no flip), zoom bounded
+- Sky/environment color matching current `--island-sky` tokens
 
-**New:**
-- Full isometric (2.5D) island SVG with terrain zones: grass, sand, water, palm trees, rocks
-- Each character gets a distinct "domain" zone on the island (e.g., Bence's meadow, Ernő's castle, Szonja's crystal grove)
-- Winding roads/paths connecting domains — visually showing the progression path
-- Locked domains shown with fog/clouds overlay + lock icon
-- Completed domains glow with a subtle golden border
-- Characters have idle "breathing" + "float" animations on their domains
-- The Balance Tree (Egyensúly Fája) in the center, growing as chapters complete
-- Ocean waves animation around the island edges
-- Header bar redesigned with isometric-style rounded card for profile/coins
+### 2. 3D Island Map (`IslandMap.tsx` rewrite)
+**New files:**
+- `src/components/3d/IslandTerrain.tsx` — The floating island mesh
+  - Cylinder geometry for the base (thick disc with rounded edges via `RoundedBox` or custom geometry)
+  - Top surface: green grass material, sides: brown earth/dirt
+  - Sand ring around edges using a slightly larger flat disc
+  - Water plane below the island with animated opacity
+- `src/components/3d/IslandTree.tsx` — Reusable low-poly tree (cone + cylinder)
+- `src/components/3d/BalanceTree.tsx` — Central tree that scales with `completedCount`
+- `src/components/3d/ChessPiece3D.tsx` — 6 chess piece meshes (pawn, rook, bishop, knight, queen, king)
+  - Built from basic Three.js geometries (lathe/cylinder/sphere combos)
+  - Each piece has its character color, rounded friendly look
+  - Idle animation: gentle `useFrame` float (sin wave on Y) + subtle rotation
+  - Locked pieces: gray material + semi-transparent
+  - Hover: scale up + glow ring (drei `Ring` mesh beneath)
+- `src/components/3d/DomainMarker.tsx` — Circular platform under each character with terrain variation
+- `src/components/3d/PathRoad.tsx` — Curved tube geometry connecting domains
 
-## 2. Character SVG Upgrade (`CharacterSVG.tsx`)
+**`IslandMap.tsx` changes:**
+- Replace the SVG + HTML overlay with a `<Canvas>` filling the viewport
+- Character click detection via `onClick` on meshes (raycasting handled by R3F)
+- HTML overlay header (profile, coins, nav buttons) stays as a `position: absolute` div on top of the canvas
+- Use drei `Html` component for character name labels floating above pieces
 
-**Current:** Simple 2D flat SVG shapes.
+### 3. 3D Sandbox (`MyIsland.tsx` rewrite)
+**New files:**
+- `src/components/3d/SandboxIsland.tsx` — Smaller personal island terrain
+- `src/components/3d/PlacedItem3D.tsx` — 3D versions of shop items (trees, houses, flowers as simple geometry)
+- `src/components/3d/GridOverlay.tsx` — Visual grid on the island floor (lines or tile meshes), highlighted on hover during placement
 
-**New:**
-- Add 3D-ish depth: gradients, highlights, shadows on each character
-- Add subtle drop shadows beneath characters
-- Rounder, friendlier proportions with more detail (blush on cheeks, gradient fills)
-- Keep the same viewBox and interface — just enhance the SVG paths
-- Consistent art style across all 6 characters
+**`MyIsland.tsx` changes:**
+- Canvas with the sandbox island
+- Pointer interaction: `onPointerMove` on the ground plane to detect grid cell → highlight → `onClick` to place
+- Shop panel remains as HTML overlay (bottom sheet) on top of the canvas
+- Placed items stored with existing `grid_x`, `grid_y` columns (no schema change — z is always 0/ground level)
 
-## 3. My Island Sandbox Redesign (`MyIsland.tsx`)
+### 4. Chess Piece 3D Geometries (detail)
+Each piece built from primitive Three.js shapes:
+- **Pawn (Bence):** sphere head + tapered cylinder body + disc base — green
+- **Rook (Ernő):** cylinder with notched top (4 small boxes) — brown/stone
+- **Bishop (Szonja):** pointed oval body + small sphere on top — purple
+- **Knight (Huba):** custom shape approximating horse head (box + angled box) — gold
+- **Queen (Vanda):** crown shape (cylinder + small spheres/cones on top) — amber
+- **King (Balázs):** similar to queen but with cross on top — forest green
 
-**Current:** Plain grid of square cells.
+All pieces: rounded, oversized heads/features for kid-friendly look, subtle face decals using drei `Decal` or `Html` for eyes/smile.
 
-**New:**
-- Green island background with grass texture, sand edges, water border
-- Grid cells styled as natural terrain patches (grass tiles) instead of plain boxes
-- Placed items rendered with slight 3D shadow/elevation
-- Shop redesigned as a floating panel with categorized tabs (Trees, Buildings, Decorations)
-- Drag-and-drop: use `onPointerDown/Move/Up` for touch-friendly drag placement instead of click-to-place
-- Island state persists via existing `island_inventory` table (no schema change needed)
+### 5. Files Unchanged
+- `ParentDashboard.tsx` — stays 2D HTML with recharts
+- `Chapter.tsx`, `Games.tsx`, `GamePlay.tsx` — stay 2D
+- `Auth.tsx`, `Onboarding.tsx` — stay 2D
+- All Supabase queries, auth context, data layer — unchanged
+- Database schema — unchanged
 
-## 4. Parent Dashboard with Radar Chart (`ParentDashboard.tsx`)
-
-**Current:** Simple text-based stats cards.
-
-**New:**
-- Use `recharts` RadarChart for Sakk/EQ/Matek skill visualization
-- Percentage-based progress bars per character chapter (e.g., "Bence: 100%, Ernő: 60%")
-- Cleaner card layout with icons and progress rings
-- Keep the existing data queries — just improve the presentation layer
-
-## 5. Global Visual Consistency
-
-- Update `index.css` color tokens for warmer pastel tones with better contrast
-- Add isometric-style utility classes (e.g., `isometric-card` with transform perspective)
-- Ensure all pages use consistent rounded-3xl cards, soft shadows, and the display font
-- Touch-safe: minimum 48px touch targets everywhere, tested on mobile viewports
-- Loading states: replace emoji spinner with animated character SVG
-
----
-
-## Technical Notes
-
-- **No database schema changes needed** — all changes are frontend/visual
-- **recharts** is already installed for the radar chart
-- **Framer Motion** is already installed for animations
-- All existing Supabase queries and auth flow remain unchanged
-- The isometric island will be a large SVG component with `viewBox` for responsive scaling
-- Drag-and-drop on MyIsland uses pointer events (no new library needed)
-
-## Implementation Order
-
-1. Character SVG upgrade (foundation for everything else)
-2. Global design tokens & utility classes
-3. Island Map redesign
-4. My Island sandbox redesign
-5. Parent Dashboard radar chart
+### 6. Implementation Order
+1. Install three + R3F + drei
+2. Create `SceneSetup.tsx` with camera/lights
+3. Build `IslandTerrain.tsx` + `IslandTree.tsx` + `BalanceTree.tsx`
+4. Build `ChessPiece3D.tsx` with all 6 pieces
+5. Build `DomainMarker.tsx` + `PathRoad.tsx`
+6. Rewrite `IslandMap.tsx` to use 3D canvas
+7. Build sandbox 3D components
+8. Rewrite `MyIsland.tsx` to use 3D canvas
 
