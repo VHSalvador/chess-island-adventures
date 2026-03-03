@@ -22,24 +22,56 @@ const Onboarding = () => {
     if (!user || !selectedCharacter || !characterName.trim()) return;
     setLoading(true);
     try {
-      const { data: profileData, error } = await supabase.from('child_profiles').insert({
-        user_id: user.id,
-        character_id: selectedCharacter,
-        character_name: characterName.trim(),
-        aranytaller: 10,
-      }).select('id').single();
-      if (error || !profileData) throw error || new Error('Profil létrehozás sikertelen');
+      const { data: existingProfile, error: existingProfileError } = await supabase
+        .from('child_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      // Create initial chapter progress
-      await supabase.from('chapter_progress').insert({
-        child_profile_id: profileData.id,
-        chapter_number: 1,
-        step: 'story',
-      });
+      if (existingProfileError) throw existingProfileError;
 
-      await refreshChildProfile();
+      let profileId = existingProfile?.id;
+
+      if (profileId) {
+        const { error: updateError } = await supabase
+          .from('child_profiles')
+          .update({
+            character_id: selectedCharacter,
+            character_name: characterName.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profileId);
+
+        if (updateError) throw updateError;
+      } else {
+        const { data: profileData, error } = await supabase
+          .from('child_profiles')
+          .insert({
+            user_id: user.id,
+            character_id: selectedCharacter,
+            character_name: characterName.trim(),
+            aranytaller: 10,
+          })
+          .select('id')
+          .single();
+
+        if (error || !profileData) throw error || new Error('Profil létrehozás sikertelen');
+        profileId = profileData.id;
+
+        await supabase.from('chapter_progress').insert({
+          child_profile_id: profileId,
+          chapter_number: 1,
+          step: 'story',
+        });
+      }
+
+      const refreshedProfile = await refreshChildProfile();
+      if (!refreshedProfile) throw new Error('A profil frissítése sikertelen');
+
       toast.success('🎉 Üdv a Sakk-Szigeten!');
-      navigate('/map');
+      navigate('/map', { replace: true });
     } catch (err: any) {
       toast.error(err.message || 'Hiba történt');
     } finally {
