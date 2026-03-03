@@ -1,17 +1,30 @@
-import React, { Suspense, Component, type ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { Suspense, Component, type ReactNode, useEffect, useRef, memo, useCallback } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { OrbitControls, ContactShadows, AdaptiveDpr } from '@react-three/drei';
 
-// Error boundary to catch WebGL failures gracefully
+// Error boundary that auto-reloads on persistent WebGL failure
 class WebGLErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
+  { children: ReactNode },
+  { hasError: boolean; retryCount: number }
 > {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
+  state = { hasError: false, retryCount: 0 };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+    if (this.state.retryCount < 1) {
+      // Try one clean remount
+      setTimeout(() => this.setState({ hasError: false, retryCount: this.state.retryCount + 1 }), 500);
+    }
+  }
+
   render() {
-    return this.state.hasError ? this.props.fallback : this.props.children;
+    if (this.state.hasError && this.state.retryCount >= 1) {
+      return <WebGLFallback />;
+    }
+    return this.props.children;
   }
 }
 
@@ -32,15 +45,91 @@ const WebGLFallback = () => (
   </div>
 );
 
+// Cleanup component - disposes renderer on unmount
+const RendererCleanup: React.FC = () => {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    return () => {
+      gl.dispose();
+      gl.forceContextLoss();
+      const canvas = gl.domElement;
+      canvas.width = 1;
+      canvas.height = 1;
+    };
+  }, [gl]);
+
+  return null;
+};
+
+// Lightweight invalidator for animations
+const AnimationLoop: React.FC = () => {
+  useFrame(({ invalidate }) => { invalidate(); });
+  return null;
+};
+
 interface SceneSetupProps {
   children: React.ReactNode;
   orbitEnabled?: boolean;
 }
 
-const SceneSetup: React.FC<SceneSetupProps> = ({ children, orbitEnabled = true }) => {
+const SceneContent: React.FC<SceneSetupProps> = memo(({ children, orbitEnabled = true }) => {
   return (
-    <WebGLErrorBoundary fallback={<WebGLFallback />}>
+    <>
+      <RendererCleanup />
+      <AnimationLoop />
+      <AdaptiveDpr pixelated />
+
+      <color attach="background" args={['#8ec8e8']} />
+      <fog attach="fog" args={['#8ec8e8', 30, 60]} />
+
+      <ambientLight intensity={0.7} color="#fff5e6" />
+      <directionalLight
+        position={[8, 12, 6]}
+        intensity={1.2}
+        color="#fff8f0"
+      />
+      <directionalLight position={[-4, 6, -4]} intensity={0.3} color="#b0d0ff" />
+
+      {/* ContactShadows instead of expensive shadow maps */}
+      <ContactShadows
+        position={[0, 0.01, 0]}
+        opacity={0.35}
+        scale={25}
+        blur={2}
+        far={8}
+        resolution={256}
+        color="#2a4a1a"
+      />
+
+      {orbitEnabled && (
+        <OrbitControls
+          enablePan={false}
+          minZoom={30}
+          maxZoom={80}
+          maxPolarAngle={Math.PI / 2.5}
+          minPolarAngle={Math.PI / 6}
+          enableDamping
+          dampingFactor={0.05}
+        />
+      )}
+
+      <Suspense fallback={null}>
+        {children}
+      </Suspense>
+    </>
+  );
+});
+
+SceneContent.displayName = 'SceneContent';
+
+const SceneSetup: React.FC<SceneSetupProps> = ({ children, orbitEnabled = true }) => {
+  const canvasKey = useRef(0);
+
+  return (
+    <WebGLErrorBoundary>
       <Canvas
+        key={canvasKey.current}
         orthographic
         camera={{
           position: [10, 10, 10],
@@ -48,73 +137,29 @@ const SceneSetup: React.FC<SceneSetupProps> = ({ children, orbitEnabled = true }
           near: 0.1,
           far: 1000,
         }}
-        shadows
         frameloop="demand"
+        dpr={[1, 1.5]}
         style={{ width: '100%', height: '100%' }}
         gl={{
-          antialias: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          powerPreference: 'default',
+          antialias: false,
+          alpha: true,
+          stencil: false,
+          depth: true,
+          powerPreference: 'high-performance',
           failIfMajorPerformanceCaveat: false,
         }}
+        shadows={false}
         onCreated={({ camera, invalidate }) => {
           camera.lookAt(0, 0, 0);
-          // Switch to continuous after first render
           invalidate();
-          setTimeout(() => {
-            // Re-enable continuous loop after mount
-          }, 100);
         }}
       >
-        <AutoInvalidate />
-        <color attach="background" args={['#8ec8e8']} />
-        <fog attach="fog" args={['#8ec8e8', 30, 60]} />
-
-        <ambientLight intensity={0.6} color="#fff5e6" />
-        <directionalLight
-          position={[8, 12, 6]}
-          intensity={1.2}
-          color="#fff8f0"
-          castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-far={50}
-          shadow-camera-left={-15}
-          shadow-camera-right={15}
-          shadow-camera-top={15}
-          shadow-camera-bottom={-15}
-          shadow-bias={-0.001}
-        />
-        <directionalLight position={[-4, 6, -4]} intensity={0.3} color="#b0d0ff" />
-
-        {orbitEnabled && (
-          <OrbitControls
-            enablePan={false}
-            minZoom={30}
-            maxZoom={80}
-            maxPolarAngle={Math.PI / 2.5}
-            minPolarAngle={Math.PI / 6}
-            enableDamping
-            dampingFactor={0.05}
-          />
-        )}
-
-        <Suspense fallback={null}>
+        <SceneContent orbitEnabled={orbitEnabled}>
           {children}
-        </Suspense>
+        </SceneContent>
       </Canvas>
     </WebGLErrorBoundary>
   );
-};
-
-// Component that continuously invalidates for animations
-import { useFrame } from '@react-three/fiber';
-
-const AutoInvalidate = () => {
-  useFrame(({ invalidate }) => {
-    invalidate();
-  });
-  return null;
 };
 
 export default SceneSetup;
