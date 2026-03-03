@@ -1,141 +1,83 @@
 
 
-# 🏝️ Sakk-Sziget Hősei (Chess Island Heroes) — Implementation Plan
+# Sakk-Sziget Visual & UX Overhaul Plan
 
-## Overview
-A Hungarian-language chess learning app for children aged 4-8, based on the uploaded book "A Sakk-Sziget Hősei." Six charming characters each represent a chess piece and teach children chess rules, emotional intelligence, logic, and life skills through stories, quizzes, and mini-games.
-
----
-
-## 1. 🔐 Authentication & Onboarding
-
-**Parent Login:**
-- Simple username + password login (Supabase Auth)
-- Parent creates an account, then the child's session begins
-
-**Child Onboarding (first login only):**
-- Choose a character avatar (one of the 6 heroes)
-- Give the character a name
-- Fun, colorful wizard-style onboarding with large buttons
-- After first setup, the child goes directly to the island map on subsequent logins
-
-**Database:** Profiles table for parent info, child_profiles table for character choice, name, progress, and Aranytallér balance
+This is a major visual and functional upgrade across the entire app. The work breaks down into 5 areas.
 
 ---
 
-## 2. 🗺️ Island Map (Main Navigation)
+## 1. Isometric Island Map Redesign (`IslandMap.tsx`)
 
-- Beautiful illustrated map of Sakk-Sziget with the 6 character zones
-- **Linear unlock system:** Bence → Ernő → Szonja → Huba → Vanda → Balázs
-- Locked chapters shown with a lock icon, completed ones with a star ⭐
-- The Egyensúly Fája (Balance Tree) visible in the center
-- Animated characters with idle "breathing" animations
-- Large, rounded, high-contrast buttons suitable for small children
+**Current:** Flat SVG ellipses with character buttons scattered on percentage positions.
 
----
+**New:**
+- Full isometric (2.5D) island SVG with terrain zones: grass, sand, water, palm trees, rocks
+- Each character gets a distinct "domain" zone on the island (e.g., Bence's meadow, Ernő's castle, Szonja's crystal grove)
+- Winding roads/paths connecting domains — visually showing the progression path
+- Locked domains shown with fog/clouds overlay + lock icon
+- Completed domains glow with a subtle golden border
+- Characters have idle "breathing" + "float" animations on their domains
+- The Balance Tree (Egyensúly Fája) in the center, growing as chapters complete
+- Ocean waves animation around the island edges
+- Header bar redesigned with isometric-style rounded card for profile/coins
 
-## 3. 📖 Chapter System (6 Chapters)
+## 2. Character SVG Upgrade (`CharacterSVG.tsx`)
 
-Each chapter follows the same structure from the book:
+**Current:** Simple 2D flat SVG shapes.
 
-1. **Story Introduction** — Character poem and backstory with illustrations
-2. **Movement Rules** — Interactive chess board showing how the piece moves
-3. **Story Adventure** — The character's adventure (Bence finds a new path, Ernő saves Bence, etc.)
-4. **Practice Tasks** — Interactive exercises (draw paths, identify moves, math questions)
-5. **Character Song** — The character's song with "Csináld velem!" (Do it with me!) actions
-6. **Star Badge** — Earn the character's star upon completion
+**New:**
+- Add 3D-ish depth: gradients, highlights, shadows on each character
+- Add subtle drop shadows beneath characters
+- Rounder, friendlier proportions with more detail (blush on cheeks, gradient fills)
+- Keep the same viewBox and interface — just enhance the SVG paths
+- Consistent art style across all 6 characters
 
-**Content directly from the book:**
-- Bence (Pawn): Persistence, forward movement, promotion
-- Ernő (Rook): Honesty, straight-line movement
-- Szonja (Bishop): Creativity, diagonal movement, color-bound
-- Huba (Knight): Out-of-the-box thinking, L-shaped jumps
-- Vanda (Queen): Empathy, all-direction movement
-- Balázs (King): Wisdom & patience, one-step movement
+## 3. My Island Sandbox Redesign (`MyIsland.tsx`)
 
----
+**Current:** Plain grid of square cells.
 
-## 4. 🧩 Quiz Engine
+**New:**
+- Green island background with grass texture, sand edges, water border
+- Grid cells styled as natural terrain patches (grass tiles) instead of plain boxes
+- Placed items rendered with slight 3D shadow/elevation
+- Shop redesigned as a floating panel with categorized tabs (Trees, Buildings, Decorations)
+- Drag-and-drop: use `onPointerDown/Move/Up` for touch-friendly drag placement instead of click-to-place
+- Island state persists via existing `island_inventory` table (no schema change needed)
 
-Three types of questions after each chapter:
+## 4. Parent Dashboard with Radar Chart (`ParentDashboard.tsx`)
 
-- **Chess Questions:** "Where can this piece move?", legal move validation on an interactive board
-- **EQ Questions:** "How did Bence feel when he was blocked?", "Why is honesty important like Ernő?"
-- **Logic & Math:** Counting squares (8×8=64), simple addition (3+2=5), drawing + and X patterns
+**Current:** Simple text-based stats cards.
 
-Correct answers earn **Aranytallér** (Gold Coins) 🪙
+**New:**
+- Use `recharts` RadarChart for Sakk/EQ/Matek skill visualization
+- Percentage-based progress bars per character chapter (e.g., "Bence: 100%, Ernő: 60%")
+- Cleaner card layout with icons and progress rings
+- Keep the existing data queries — just improve the presentation layer
 
----
+## 5. Global Visual Consistency
 
-## 5. ♟️ Chess Mini-Games
-
-**Progressive chess games (unlocked as chapters complete):**
-
-- **Gyalogháború (Pawn War):** Only pawns on the board — first to promote or capture all wins
-- **Capture the Castle:** Simplified piece vs. piece challenges
-- **Piece-specific exercises:** Move a single piece to collect stars on the board
-- **Full board setup:** Only available after ALL 6 chapters are completed
-
-**Board Features:**
-- Legal move highlights (green dots)
-- "Tipp" button (AI hint)
-- "Vissza" button (Undo last move)
-- Friendly chess piece designs on the board
-- Child-friendly terminology: "Vigyázz, Balázs!" instead of "Check", "Körbezárás" instead of "Checkmate"
-
-**AI Difficulty (Stockfish.js via Web Worker):**
-- Kezdő (Beginner): Skill 0
-- Közepes (Medium): Skill 5
-- Profi (Pro): Skill 12
+- Update `index.css` color tokens for warmer pastel tones with better contrast
+- Add isometric-style utility classes (e.g., `isometric-card` with transform perspective)
+- Ensure all pages use consistent rounded-3xl cards, soft shadows, and the display font
+- Touch-safe: minimum 48px touch targets everywhere, tested on mobile viewports
+- Loading states: replace emoji spinner with animated character SVG
 
 ---
 
-## 6. 🏠 My Island (Building Mode)
+## Technical Notes
 
-- Personal island grid where children spend their Aranytallér
-- **Shop items:** Cottage, trees, the Balance Tree, decorations, flowers, fences
-- **Drag-and-drop** placement on a simple grid
-- Items persist in the database
-- Motivates children to complete chapters and quizzes to earn more coins
+- **No database schema changes needed** — all changes are frontend/visual
+- **recharts** is already installed for the radar chart
+- **Framer Motion** is already installed for animations
+- All existing Supabase queries and auth flow remain unchanged
+- The isometric island will be a large SVG component with `viewBox` for responsive scaling
+- Drag-and-drop on MyIsland uses pointer events (no new library needed)
 
----
+## Implementation Order
 
-## 7. 👨‍👩‍👧 Parent Dashboard
-
-- View child's current chapter progress
-- See which stars/badges have been earned
-- Track Aranytallér balance and island items
-- View quiz performance (chess, EQ, math scores)
-- Simple, clean dashboard accessible after parent login
-
----
-
-## 8. 🎨 Visual Design & Characters
-
-- **Color scheme:** Warm, friendly colors — greens, blues, golds
-- **Characters:** Custom SVG chess pieces with friendly faces, inspired by the book descriptions:
-  - Bence: Small green sprout with big eyes
-  - Ernő: Grey-brown stone tower with determined expression
-  - Szonja: Blue-purple flowing figure
-  - Huba: Yellow-white energetic figure with lightning
-  - Vanda: Gold-orange glowing figure with rays
-  - Balázs: Brown-green tree figure with a leaf crown
-- **UI:** Extra-large touch targets, rounded corners, playful animations (Framer Motion)
-- **Language:** All UI text in simple Hungarian for 4-8 year olds
-
----
-
-## 9. 🔊 Audio (Planned for Later)
-- Placeholder structure for narrator voice-overs
-- Character voice hooks ready (Bence: "Előre!", Huba: "Hoppsza!")
-- ElevenLabs integration can be added in a future phase
-
----
-
-## Technical Architecture
-- **Frontend:** React + Vite + Tailwind + Framer Motion
-- **Backend:** Supabase (Auth, Database, Storage)
-- **Chess Engine:** Stockfish.js running in a Web Worker
-- **State:** React Query for server state, React context for game state
-- **Database tables:** profiles, child_profiles, chapter_progress, quiz_results, island_inventory, shop_items
+1. Character SVG upgrade (foundation for everything else)
+2. Global design tokens & utility classes
+3. Island Map redesign
+4. My Island sandbox redesign
+5. Parent Dashboard radar chart
 
