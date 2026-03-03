@@ -6,45 +6,51 @@
 
 @layer base {
   :root {
-    --background: 45 100% 96%;
-    --foreground: 220 30% 20%;
+    --background: 42 85% 96%;
+    --foreground: 220 30% 18%;
 
-    --card: 45 80% 98%;
-    --card-foreground: 220 30% 20%;
+    --card: 40 70% 97%;
+    --card-foreground: 220 30% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 20%;
+    --popover-foreground: 220 30% 18%;
 
-    --primary: 142 50% 45%;
+    --primary: 145 52% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 70% 55%;
+    --secondary: 205 68% 52%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 45 30% 90%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 40 25% 90%;
+    --muted-foreground: 220 15% 42%;
 
-    --accent: 40 95% 55%;
-    --accent-foreground: 220 30% 15%;
+    --accent: 38 95% 52%;
+    --accent-foreground: 220 30% 12%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 45 30% 85%;
-    --input: 45 30% 85%;
-    --ring: 142 50% 45%;
+    --border: 40 28% 82%;
+    --input: 40 28% 82%;
+    --ring: 145 52% 42%;
 
     --radius: 1rem;
 
-    /* Custom tokens */
-    --island-sky: 200 80% 75%;
-    --island-grass: 120 45% 55%;
-    --island-sand: 40 60% 80%;
-    --island-water: 210 70% 60%;
+    /* Island terrain */
+    --island-sky: 198 78% 72%;
+    --island-sky-deep: 210 70% 58%;
+    --island-grass: 125 42% 52%;
+    --island-grass-light: 118 45% 62%;
+    --island-sand: 38 55% 78%;
+    --island-water: 210 68% 55%;
+    --island-water-deep: 215 65% 42%;
+    --island-path: 32 40% 65%;
+
+    /* Gold */
     --gold: 45 100% 50%;
     --gold-foreground: 35 80% 25%;
 
-    /* Character colors */
+    /* Characters */
     --bence: 130 55% 45%;
     --erno: 25 20% 45%;
     --szonja: 270 50% 55%;
@@ -63,25 +69,25 @@
   }
 
   .dark {
-    --background: 220 30% 12%;
-    --foreground: 45 50% 95%;
-    --card: 220 25% 16%;
-    --card-foreground: 45 50% 95%;
-    --popover: 220 25% 16%;
-    --popover-foreground: 45 50% 95%;
-    --primary: 142 50% 50%;
+    --background: 220 30% 10%;
+    --foreground: 42 50% 95%;
+    --card: 220 25% 14%;
+    --card-foreground: 42 50% 95%;
+    --popover: 220 25% 14%;
+    --popover-foreground: 42 50% 95%;
+    --primary: 145 52% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 200 60% 50%;
+    --secondary: 205 60% 48%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 20% 22%;
-    --muted-foreground: 45 20% 65%;
-    --accent: 40 90% 55%;
+    --muted: 220 20% 20%;
+    --muted-foreground: 42 20% 62%;
+    --accent: 38 90% 52%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 220 20% 25%;
-    --input: 220 20% 25%;
-    --ring: 142 50% 50%;
+    --border: 220 20% 22%;
+    --input: 220 20% 22%;
+    --ring: 145 52% 48%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -112,5 +118,18 @@
   .child-button {
     @apply rounded-2xl px-8 py-4 text-xl font-bold shadow-lg transition-all duration-200 active:scale-95 hover:scale-105;
     font-family: 'Baloo 2', cursive;
+  }
+
+  .isometric-card {
+    @apply rounded-3xl shadow-xl border-2 border-border;
+    background: hsl(var(--card));
+  }
+
+  .island-terrain {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+  }
+
+  .progress-ring {
+    transition: stroke-dashoffset 0.6s ease-in-out;
   }
 }
