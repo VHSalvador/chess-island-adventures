@@ -1,85 +1,32 @@
 
 
-# 3D Chess Island Transformation Plan
+# Plan: Stick with Three.js — Do NOT Switch to Babylon.js
 
-## Overview
-Replace the current 2D SVG island map and sandbox with a full 3D environment using `@react-three/fiber@^8.18` and `@react-three/drei@^9.122.0` (+ `three@^0.160`). The Parent Dashboard, Quizzes, and Auth pages remain 2D HTML.
+## Why Not Babylon.js
 
-## New Dependencies
-- `three@^0.160.0`
-- `@react-three/fiber@^8.18.0`
-- `@react-three/drei@^9.122.0`
+Switching to Babylon.js would be a **high-risk, low-reward** move:
 
-## Implementation
+1. **`react-babylonjs` is poorly maintained** — low adoption, sparse docs, React 18 compatibility issues. It's nowhere near as battle-tested as `@react-three/fiber`.
+2. **Complete rewrite of 10 components** for no functional gain. The WebGL context loss issue was already fixed with proper disposal and `failIfMajorPerformanceCaveat: false`.
+3. **Babylon.js bundle is ~3x larger** than Three.js — bad for a children's app that needs fast loading on tablets.
+4. **The existing Three.js setup already works** — the context loss was an HMR artifact, not a Three.js deficiency.
 
-### 1. 3D Scene Infrastructure
-**New file: `src/components/3d/SceneSetup.tsx`**
-- Reusable `<Canvas>` wrapper with orthographic camera (isometric angle ~35° X, 45° Y rotation)
-- `AmbientLight` (intensity 0.6) + `DirectionalLight` with soft shadows
-- `OrbitControls` from drei — limited rotation (no flip), zoom bounded
-- Sky/environment color matching current `--island-sky` tokens
+## What I Recommend Instead
 
-### 2. 3D Island Map (`IslandMap.tsx` rewrite)
-**New files:**
-- `src/components/3d/IslandTerrain.tsx` — The floating island mesh
-  - Cylinder geometry for the base (thick disc with rounded edges via `RoundedBox` or custom geometry)
-  - Top surface: green grass material, sides: brown earth/dirt
-  - Sand ring around edges using a slightly larger flat disc
-  - Water plane below the island with animated opacity
-- `src/components/3d/IslandTree.tsx` — Reusable low-poly tree (cone + cylinder)
-- `src/components/3d/BalanceTree.tsx` — Central tree that scales with `completedCount`
-- `src/components/3d/ChessPiece3D.tsx` — 6 chess piece meshes (pawn, rook, bishop, knight, queen, king)
-  - Built from basic Three.js geometries (lathe/cylinder/sphere combos)
-  - Each piece has its character color, rounded friendly look
-  - Idle animation: gentle `useFrame` float (sin wave on Y) + subtle rotation
-  - Locked pieces: gray material + semi-transparent
-  - Hover: scale up + glow ring (drei `Ring` mesh beneath)
-- `src/components/3d/DomainMarker.tsx` — Circular platform under each character with terrain variation
-- `src/components/3d/PathRoad.tsx` — Curved tube geometry connecting domains
+Fix the remaining stability issues and polish the existing Three.js 3D environment:
 
-**`IslandMap.tsx` changes:**
-- Replace the SVG + HTML overlay with a `<Canvas>` filling the viewport
-- Character click detection via `onClick` on meshes (raycasting handled by R3F)
-- HTML overlay header (profile, coins, nav buttons) stays as a `position: absolute` div on top of the canvas
-- Use drei `Html` component for character name labels floating above pieces
+### 1. Harden WebGL Resilience (`SceneSetup.tsx`)
+- Add `onContextLost` / `onContextRestored` handlers on the canvas to gracefully recover instead of crashing
+- Limit simultaneous canvases: ensure only one `<Canvas>` is mounted at a time (IslandMap OR MyIsland, never both)
 
-### 3. 3D Sandbox (`MyIsland.tsx` rewrite)
-**New files:**
-- `src/components/3d/SandboxIsland.tsx` — Smaller personal island terrain
-- `src/components/3d/PlacedItem3D.tsx` — 3D versions of shop items (trees, houses, flowers as simple geometry)
-- `src/components/3d/GridOverlay.tsx` — Visual grid on the island floor (lines or tile meshes), highlighted on hover during placement
+### 2. Improve Visual Quality (existing components)
+- Add animated ocean plane with vertex displacement in `IslandTerrain.tsx`
+- Enhance tree variety with randomized scales/colors in `IslandTree.tsx`
+- Add subtle particle effects (floating leaves/sparkles) near the Balance Tree
 
-**`MyIsland.tsx` changes:**
-- Canvas with the sandbox island
-- Pointer interaction: `onPointerMove` on the ground plane to detect grid cell → highlight → `onClick` to place
-- Shop panel remains as HTML overlay (bottom sheet) on top of the canvas
-- Placed items stored with existing `grid_x`, `grid_y` columns (no schema change — z is always 0/ground level)
+### 3. Performance Guard
+- Add `useEffect` cleanup in every 3D component that creates geometries/materials
+- Use `drei`'s `Preload` to warm up assets before the scene renders
 
-### 4. Chess Piece 3D Geometries (detail)
-Each piece built from primitive Three.js shapes:
-- **Pawn (Bence):** sphere head + tapered cylinder body + disc base — green
-- **Rook (Ernő):** cylinder with notched top (4 small boxes) — brown/stone
-- **Bishop (Szonja):** pointed oval body + small sphere on top — purple
-- **Knight (Huba):** custom shape approximating horse head (box + angled box) — gold
-- **Queen (Vanda):** crown shape (cylinder + small spheres/cones on top) — amber
-- **King (Balázs):** similar to queen but with cross on top — forest green
-
-All pieces: rounded, oversized heads/features for kid-friendly look, subtle face decals using drei `Decal` or `Html` for eyes/smile.
-
-### 5. Files Unchanged
-- `ParentDashboard.tsx` — stays 2D HTML with recharts
-- `Chapter.tsx`, `Games.tsx`, `GamePlay.tsx` — stay 2D
-- `Auth.tsx`, `Onboarding.tsx` — stay 2D
-- All Supabase queries, auth context, data layer — unchanged
-- Database schema — unchanged
-
-### 6. Implementation Order
-1. Install three + R3F + drei
-2. Create `SceneSetup.tsx` with camera/lights
-3. Build `IslandTerrain.tsx` + `IslandTree.tsx` + `BalanceTree.tsx`
-4. Build `ChessPiece3D.tsx` with all 6 pieces
-5. Build `DomainMarker.tsx` + `PathRoad.tsx`
-6. Rewrite `IslandMap.tsx` to use 3D canvas
-7. Build sandbox 3D components
-8. Rewrite `MyIsland.tsx` to use 3D canvas
+This approach keeps the working codebase, fixes the actual issues, and improves visuals — without the massive risk of a framework swap.
 
