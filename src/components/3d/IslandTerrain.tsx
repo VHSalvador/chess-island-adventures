@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // Animated ocean with vertex displacement
 const AnimatedOcean: React.FC = () => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const geo = useMemo(() => new THREE.PlaneGeometry(40, 40, 32, 32), []);
+  const geo = useMemo(() => new THREE.PlaneGeometry(40, 40, 8, 8), []);
   const mat = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#4a9eda',
     transparent: true,
@@ -29,7 +29,6 @@ const AnimatedOcean: React.FC = () => {
       posAttr.setZ(i, Math.sin(x * 0.4 + t * 0.8) * 0.15 + Math.cos(y * 0.3 + t * 0.6) * 0.1);
     }
     posAttr.needsUpdate = true;
-    geo.computeVertexNormals();
   });
 
   return (

@@ -1,5 +1,5 @@
-import React, { Suspense, Component, type ReactNode, useEffect, useRef, memo, useCallback } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import React, { Suspense, Component, type ReactNode, useEffect, useRef, memo } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, AdaptiveDpr, Preload } from '@react-three/drei';
 
 // Error boundary that auto-reloads on persistent WebGL failure
@@ -58,7 +58,6 @@ const RendererCleanup: React.FC = () => {
 
     const handleContextRestored = () => {
       console.info('[SceneSetup] WebGL context restored');
-      // R3F will re-render automatically on next frame
     };
 
     canvas.addEventListener('webglcontextlost', handleContextLost);
@@ -68,18 +67,9 @@ const RendererCleanup: React.FC = () => {
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       gl.dispose();
-      gl.forceContextLoss();
-      canvas.width = 1;
-      canvas.height = 1;
     };
   }, [gl]);
 
-  return null;
-};
-
-// Lightweight invalidator for demand-mode animations
-const AnimationLoop: React.FC = () => {
-  useFrame(({ invalidate }) => { invalidate(); });
   return null;
 };
 
@@ -92,7 +82,6 @@ const SceneContent: React.FC<SceneSetupProps> = memo(({ children, orbitEnabled =
   return (
     <>
       <RendererCleanup />
-      <AnimationLoop />
       <AdaptiveDpr pixelated />
 
       <color attach="background" args={['#8ec8e8']} />
@@ -149,7 +138,7 @@ const SceneSetup: React.FC<SceneSetupProps> = ({ children, orbitEnabled = true }
           near: 0.1,
           far: 1000,
         }}
-        frameloop="demand"
+        frameloop="always"
         dpr={[1, 1.5]}
         style={{ width: '100%', height: '100%' }}
         gl={{

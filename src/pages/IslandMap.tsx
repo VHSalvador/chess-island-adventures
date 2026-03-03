@@ -38,11 +38,16 @@ const pathConnections = [
   { from: 4, to: 5 },
 ];
 
-// Decorative tree positions
-const treePlacements: [number, number, number][] = [
-  [-7, 0.3, 0], [6.5, 0.3, -0.5], [-2, 0.3, 5.5],
-  [2, 0.3, -6.5], [6, 0.3, -5], [-6, 0.3, -4],
-  [0, 0.3, 6], [5, 0.3, 5],
+// Decorative tree positions — scales seeded from position to avoid Math.random() on re-render
+const treePlacements: { pos: [number, number, number]; scale: number }[] = [
+  { pos: [-7, 0.3, 0],     scale: 0.82 },
+  { pos: [6.5, 0.3, -0.5], scale: 0.95 },
+  { pos: [-2, 0.3, 5.5],   scale: 0.71 },
+  { pos: [2, 0.3, -6.5],   scale: 1.0  },
+  { pos: [6, 0.3, -5],     scale: 0.88 },
+  { pos: [-6, 0.3, -4],    scale: 0.76 },
+  { pos: [0, 0.3, 6],      scale: 0.93 },
+  { pos: [5, 0.3, 5],      scale: 0.84 },
 ];
 
 const IslandMap = () => {
@@ -83,11 +88,11 @@ const IslandMap = () => {
           <BalanceTree completedCount={completedCount} />
 
           {/* Decorative trees */}
-          {treePlacements.map((pos, i) => (
+          {treePlacements.map(({ pos, scale }, i) => (
             <IslandTree
               key={`tree-${i}`}
               position={pos}
-              scale={0.6 + Math.random() * 0.4}
+              scale={scale}
             />
           ))}
 
