@@ -25,11 +25,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchChildProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('child_profiles')
       .select('*')
       .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
+
+    if (error) {
+      console.error('Child profile lekérés hiba:', error.message);
+      setChildProfile(null);
+      return null;
+    }
+
     setChildProfile(data);
     return data;
   };
