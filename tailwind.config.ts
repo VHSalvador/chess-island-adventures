@@ -57,9 +57,13 @@ export default {
         },
         island: {
           sky: "hsl(var(--island-sky))",
+          "sky-deep": "hsl(var(--island-sky-deep))",
           grass: "hsl(var(--island-grass))",
+          "grass-light": "hsl(var(--island-grass-light))",
           sand: "hsl(var(--island-sand))",
           water: "hsl(var(--island-water))",
+          "water-deep": "hsl(var(--island-water-deep))",
+          path: "hsl(var(--island-path))",
         },
         bence: "hsl(var(--bence))",
         erno: "hsl(var(--erno))",
