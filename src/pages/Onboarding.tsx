@@ -22,17 +22,17 @@ const Onboarding = () => {
     if (!user || !selectedCharacter || !characterName.trim()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from('child_profiles').insert({
+      const { data: profileData, error } = await supabase.from('child_profiles').insert({
         user_id: user.id,
         character_id: selectedCharacter,
         character_name: characterName.trim(),
-        aranytaller: 10, // starting coins
-      });
-      if (error) throw error;
+        aranytaller: 10,
+      }).select('id').single();
+      if (error || !profileData) throw error || new Error('Profil létrehozás sikertelen');
 
       // Create initial chapter progress
       await supabase.from('chapter_progress').insert({
-        child_profile_id: (await supabase.from('child_profiles').select('id').eq('user_id', user.id).single()).data!.id,
+        child_profile_id: profileData.id,
         chapter_number: 1,
         step: 'story',
       });
