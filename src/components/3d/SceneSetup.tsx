@@ -1,6 +1,6 @@
 import React, { Suspense, Component, type ReactNode, useEffect, useRef, memo, useCallback } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, AdaptiveDpr } from '@react-three/drei';
+import { OrbitControls, ContactShadows, AdaptiveDpr, Preload } from '@react-three/drei';
 
 // Error boundary that auto-reloads on persistent WebGL failure
 class WebGLErrorBoundary extends Component<
@@ -15,7 +15,6 @@ class WebGLErrorBoundary extends Component<
 
   componentDidCatch() {
     if (this.state.retryCount < 1) {
-      // Try one clean remount
       setTimeout(() => this.setState({ hasError: false, retryCount: this.state.retryCount + 1 }), 500);
     }
   }
@@ -45,15 +44,31 @@ const WebGLFallback = () => (
   </div>
 );
 
-// Cleanup component - disposes renderer on unmount
+// Cleanup component - disposes renderer on unmount + handles context loss
 const RendererCleanup: React.FC = () => {
   const { gl } = useThree();
 
   useEffect(() => {
+    const canvas = gl.domElement;
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      console.warn('[SceneSetup] WebGL context lost — waiting for restore…');
+    };
+
+    const handleContextRestored = () => {
+      console.info('[SceneSetup] WebGL context restored');
+      // R3F will re-render automatically on next frame
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored);
+
     return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       gl.dispose();
       gl.forceContextLoss();
-      const canvas = gl.domElement;
       canvas.width = 1;
       canvas.height = 1;
     };
@@ -62,7 +77,7 @@ const RendererCleanup: React.FC = () => {
   return null;
 };
 
-// Lightweight invalidator for animations
+// Lightweight invalidator for demand-mode animations
 const AnimationLoop: React.FC = () => {
   useFrame(({ invalidate }) => { invalidate(); });
   return null;
@@ -84,14 +99,9 @@ const SceneContent: React.FC<SceneSetupProps> = memo(({ children, orbitEnabled =
       <fog attach="fog" args={['#8ec8e8', 30, 60]} />
 
       <ambientLight intensity={0.7} color="#fff5e6" />
-      <directionalLight
-        position={[8, 12, 6]}
-        intensity={1.2}
-        color="#fff8f0"
-      />
+      <directionalLight position={[8, 12, 6]} intensity={1.2} color="#fff8f0" />
       <directionalLight position={[-4, 6, -4]} intensity={0.3} color="#b0d0ff" />
 
-      {/* ContactShadows instead of expensive shadow maps */}
       <ContactShadows
         position={[0, 0.01, 0]}
         opacity={0.35}
@@ -117,6 +127,8 @@ const SceneContent: React.FC<SceneSetupProps> = memo(({ children, orbitEnabled =
       <Suspense fallback={null}>
         {children}
       </Suspense>
+
+      <Preload all />
     </>
   );
 });
