@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import MapPaths from './MapPaths';
 import ChapterMarker from './ChapterMarker';
+import HexIslandCanvas from './HexIslandCanvas';
 import { CHARACTER_INFO, type CharacterId } from '@/components/characters/CharacterSVG';
 
 const PIECE_COLORS: Record<string, string> = {
@@ -15,21 +15,14 @@ const PIECE_COLORS: Record<string, string> = {
 
 const characterOrder: CharacterId[] = ['bence', 'erno', 'szonja', 'huba', 'vanda', 'balazs'];
 
-const MARKER_POSITIONS = [
-  { left: '28%', top: '62%' }, // Bence
-  { left: '62%', top: '68%' }, // Ernő
-  { left: '18%', top: '38%' }, // Szonja
-  { left: '72%', top: '42%' }, // Huba
-  { left: '32%', top: '18%' }, // Vanda
-  { left: '60%', top: '14%' }, // Balázs
-];
+// Kept for backward-compat exports; canvas provides real positions now
+const MARKER_POSITIONS: Array<{ left: string; top: string }> = [];
 
 interface IslandMapSceneProps {
   getChapterStatus: (chapterNum: number) => 'unlocked' | 'completed' | 'locked';
   onChapterClick: (chapterIndex: number) => void;
 }
 
-// Static cloud definitions — no Math.random() at render time
 const CLOUDS = [
   {
     initialX: '-5vw',
@@ -94,21 +87,19 @@ const CloudBlob: React.FC<{
   </motion.div>
 );
 
-const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onChapterClick }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 520, height: 400 });
+const STARS = [
+  { top: '3%',  left: '12%', size: 2   },
+  { top: '7%',  left: '78%', size: 1.5 },
+  { top: '5%',  left: '45%', size: 1.5 },
+  { top: '11%', left: '22%', size: 1   },
+  { top: '9%',  left: '60%', size: 2   },
+  { top: '15%', left: '88%', size: 1.5 },
+  { top: '4%',  left: '95%', size: 1   },
+  { top: '12%', left: '35%', size: 1   },
+];
 
-  useEffect(() => {
-    const update = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setContainerSize({ width, height });
-      }
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onChapterClick }) => {
+  const [chapterPositions, setChapterPositions] = useState<Array<{ x: number; y: number }>>([]);
 
   return (
     <div
@@ -118,27 +109,13 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
           'linear-gradient(180deg, #0d1b4b 0%, #1a3a6b 20%, #2d6eb5 50%, #4a90d9 75%, #a8d8f0 100%)',
       }}
     >
-      {/* Stars layer — top portion of sky */}
+      {/* Stars */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-        {[
-          { top: '3%', left: '12%', size: 2 },
-          { top: '7%', left: '78%', size: 1.5 },
-          { top: '5%', left: '45%', size: 1.5 },
-          { top: '11%', left: '22%', size: 1 },
-          { top: '9%', left: '60%', size: 2 },
-          { top: '15%', left: '88%', size: 1.5 },
-          { top: '4%', left: '95%', size: 1 },
-          { top: '12%', left: '35%', size: 1 },
-        ].map((star, i) => (
+        {STARS.map((star, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full bg-white"
-            style={{
-              top: star.top,
-              left: star.left,
-              width: star.size,
-              height: star.size,
-            }}
+            style={{ top: star.top, left: star.left, width: star.size, height: star.size }}
             animate={{ opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 2.5 + i * 0.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
           />
@@ -150,111 +127,27 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
         <CloudBlob key={i} {...cloud} />
       ))}
 
-      {/* Island container — perspective 2.5D tilt */}
+      {/* Canvas island container */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          transform: 'translate(-50%, -46%) perspective(1200px) rotateX(18deg)',
-          transformOrigin: 'center center',
-          width: 'min(560px, 92vw)',
-          height: 'min(430px, 70vw)',
+          transform: 'translate(-50%, -48%)',
+          width: 'min(680px, 95vw)',
+          height: 'min(520px, 80vw)',
           zIndex: 5,
+          position: 'relative',
         }}
       >
-        {/* Island SVG — layered organic shapes */}
-        <svg
-          viewBox="0 0 520 400"
-          fill="none"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        >
-          <defs>
-            <radialGradient id="water-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#3aa0ff" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#1a5fa0" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="grass-body" cx="42%" cy="38%" r="65%">
-              <stop offset="0%" stopColor="#5bbc5b" />
-              <stop offset="100%" stopColor="#2d8c2d" />
-            </radialGradient>
-            <radialGradient id="center-bump" cx="50%" cy="44%" r="50%">
-              <stop offset="0%" stopColor="#3a9e3a" />
-              <stop offset="100%" stopColor="#1e6e1e" />
-            </radialGradient>
-            <filter id="island-shadow" x="-10%" y="-10%" width="120%" height="130%">
-              <feDropShadow dx="0" dy="12" stdDeviation="18" floodColor="#0a2a5a" floodOpacity="0.55" />
-            </filter>
-            <filter id="water-blur">
-              <feGaussianBlur stdDeviation="6" />
-            </filter>
-          </defs>
+        <HexIslandCanvas
+          getChapterStatus={getChapterStatus}
+          onChapterClick={onChapterClick}
+          onChapterPositions={setChapterPositions}
+        />
 
-          {/* Water glow halo */}
-          <ellipse cx="260" cy="210" rx="250" ry="190" fill="url(#water-glow)" />
-
-          {/* Sand ring */}
-          <ellipse
-            cx="260"
-            cy="210"
-            rx="220"
-            ry="168"
-            fill="#d4a84b"
-            filter="url(#island-shadow)"
-          />
-
-          {/* Grass body — main island */}
-          <ellipse cx="260" cy="205" rx="200" ry="152" fill="url(#grass-body)" />
-
-          {/* Grass highlight edge top */}
-          <ellipse cx="255" cy="165" rx="155" ry="58" fill="#6dd86d" opacity="0.22" />
-
-          {/* Forest-green center bump */}
-          <ellipse cx="262" cy="195" rx="130" ry="95" fill="url(#center-bump)" opacity="0.65" />
-
-          {/* Decorative trees on island */}
-          {/* Tree 1 — far left */}
-          <g transform="translate(88, 158)">
-            <rect x="-4" y="14" width="8" height="18" rx="2" fill="#7a5230" />
-            <polygon points="0,-22 14,14 -14,14" fill="#2a7a2a" />
-            <polygon points="0,-34 11,0 -11,0" fill="#369136" />
-            <ellipse cx="-3" cy="-20" rx="4" ry="5" fill="#4ab04a" opacity="0.35" />
-          </g>
-          {/* Tree 2 — right */}
-          <g transform="translate(410, 190)">
-            <rect x="-4" y="14" width="8" height="16" rx="2" fill="#7a5230" />
-            <polygon points="0,-20 12,14 -12,14" fill="#2a7a2a" />
-            <polygon points="0,-30 10,0 -10,0" fill="#369136" />
-            <ellipse cx="3" cy="-18" rx="4" ry="5" fill="#4ab04a" opacity="0.35" />
-          </g>
-          {/* Tree 3 — center top */}
-          <g transform="translate(260, 112)">
-            <rect x="-5" y="16" width="10" height="22" rx="2" fill="#7a5230" />
-            <polygon points="0,-26 17,16 -17,16" fill="#2a7a2a" />
-            <polygon points="0,-40 13,0 -13,0" fill="#369136" />
-            <ellipse cx="-4" cy="-24" rx="5" ry="6" fill="#4ab04a" opacity="0.35" />
-          </g>
-          {/* Tree 4 — lower right */}
-          <g transform="translate(370, 268)">
-            <rect x="-4" y="12" width="8" height="15" rx="2" fill="#7a5230" />
-            <polygon points="0,-18 11,12 -11,12" fill="#2a7a2a" />
-            <polygon points="0,-28 9,0 -9,0" fill="#369136" />
-          </g>
-        </svg>
-
-        {/* Paths SVG overlay — on top of island, below markers */}
-        <div
-          ref={containerRef}
-          className="absolute inset-0"
-          style={{ zIndex: 2 }}
-        >
-          <MapPaths
-            markerPositions={MARKER_POSITIONS}
-            getChapterStatus={getChapterStatus}
-            containerWidth={containerSize.width}
-            containerHeight={containerSize.height}
-          />
-
-          {/* Chapter markers */}
-          {characterOrder.map((charId, index) => {
+        {chapterPositions.length === 6 &&
+          characterOrder.map((charId, index) => {
+            const pos = chapterPositions[index];
+            if (!pos) return null;
             const status = getChapterStatus(index + 1);
             const info = CHARACTER_INFO[charId];
             return (
@@ -264,13 +157,12 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
                 characterName={info.name}
                 color={PIECE_COLORS[charId]}
                 status={status}
-                position={MARKER_POSITIONS[index]}
+                position={{ left: pos.x + 'px', top: pos.y + 'px' }}
                 onClick={() => onChapterClick(index)}
                 animationDelay={0.1 + index * 0.12}
               />
             );
           })}
-        </div>
       </div>
 
       {/* Bottom wave band */}
@@ -285,7 +177,6 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
               'linear-gradient(180deg, transparent 0%, #1e6fcc44 30%, #1a5faa88 60%, #0f3d7acc 100%)',
           }}
         />
-        {/* Wave 1 */}
         <motion.svg
           viewBox="0 0 1440 80"
           preserveAspectRatio="none"
@@ -300,7 +191,6 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
             fillOpacity="0.5"
           />
         </motion.svg>
-        {/* Wave 2 */}
         <motion.svg
           viewBox="0 0 1440 80"
           preserveAspectRatio="none"

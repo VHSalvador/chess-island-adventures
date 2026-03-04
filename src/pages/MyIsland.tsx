@@ -6,25 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Coins, ShoppingBag, TreePine, Home, Flower2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import IsoGrid from '@/components/island/IsoGrid';
+import HexGrid from '@/components/island/HexGrid';
 import IslandItemSVG from '@/components/island/IslandItemSVG';
-
-// Pulse keyframe for placing-mode tiles
-const PULSE_STYLE = `
-@keyframes iso-tile-pulse {
-  0%,100% { filter: brightness(1);   }
-  50%      { filter: brightness(1.18); }
-}
-`;
-
-let pulseInjected = false;
-function injectPulseStyle() {
-  if (pulseInjected) return;
-  pulseInjected = true;
-  const s = document.createElement('style');
-  s.textContent = PULSE_STYLE;
-  document.head.appendChild(s);
-}
 
 const shopCategories = [
   { id: 'tree',       label: 'Fák',      icon: TreePine },
@@ -40,8 +23,6 @@ const MyIsland = () => {
   const [showShop, setShowShop]             = useState(false);
   const [activeCategory, setActiveCategory] = useState('tree');
   const [placingItem, setPlacingItem]       = useState<{ item_type: string; item_name: string } | null>(null);
-
-  useEffect(() => { injectPulseStyle(); }, []);
 
   // --- Data queries ---
 
@@ -193,68 +174,26 @@ const MyIsland = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Island platform + grid ── */}
+      {/* ── Island platform + hex grid ── */}
       <div className="flex-1 flex items-center justify-center overflow-hidden">
-        {/* Island "platform" — decorative CSS island shape */}
         <div
           style={{
             position: 'relative',
-            padding: '32px 48px 48px',
-            background: 'radial-gradient(ellipse 85% 75% at 50% 42%, #43a047 0%, #2e7d32 55%, #1b5e20 100%)',
-            borderRadius: '60% 60% 55% 55% / 50% 50% 60% 60%',
-            boxShadow: '0 8px 0 #8d6e63, 0 16px 0 #6d4c41, 0 20px 32px rgba(0,0,0,0.45)',
-            border: '4px solid #a5d6a7',
+            padding: '28px 36px 44px',
+            background: 'radial-gradient(ellipse 90% 80% at 50% 45%, #43a047 0%, #2e7d32 60%, #1b5e20 100%)',
+            borderRadius: '50%',
+            boxShadow: '0 6px 0 #6d4c41, 0 12px 0 #5d4037, 0 18px 0 #4e342e, 0 24px 32px rgba(0,0,0,0.5)',
+            border: '3px solid rgba(165,214,167,0.5)',
           }}
         >
-          {/* Sand rim at the bottom of platform */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-4px',
-              left:   '8px',
-              right:  '8px',
-              height: '18px',
-              background: 'linear-gradient(180deg, #ffe082, #ffc107)',
-              borderRadius: '0 0 55% 55% / 0 0 70% 70%',
-              zIndex: 0,
-            }}
+          <HexGrid
+            occupiedCells={occupiedCells}
+            placingMode={!!placingItem}
+            onCellClick={placeItem}
+            inventory={inventory || []}
           />
-
-          {/* The isometric grid, centered inside the platform */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {/*
-              The IsoGrid uses absolute positioning internally.
-              We need to give it a positioned container whose size matches
-              the grid canvas so it centers correctly.
-              CANVAS_W = 432, CANVAS_H = 252
-              Tiles have negative left values (left side of diamond), so we shift
-              the grid right by half the horizontal spread = (GRID_N-1)*TILE_W/2 = 180px
-            */}
-            <div
-              style={{
-                position: 'relative',
-                width:  '432px',
-                height: '252px',
-                // Compensate: the leftmost tile is at left = -180px inside IsoGrid,
-                // so we shift the inner grid content right by 180px.
-                // We do this by wrapping with an offset div.
-              }}
-            >
-              <div style={{ position: 'absolute', left: '180px', top: '0' }}>
-                <IsoGrid
-                  occupiedCells={occupiedCells}
-                  placingMode={!!placingItem}
-                  onCellClick={placeItem}
-                  inventory={inventory || []}
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* ── Responsive note: on small screens scroll horizontally ── */}
-      {/* This is handled by the inner overflow on the grid wrapper */}
 
       {/* ── Shop panel ── */}
       <AnimatePresence>
@@ -357,15 +296,6 @@ const MyIsland = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Mobile: make grid scrollable if viewport is too narrow ── */}
-      <style>{`
-        @media (max-width: 520px) {
-          .iso-grid-scroll {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-        }
-      `}</style>
     </div>
   );
 };
