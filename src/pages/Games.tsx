@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Lock, Swords, Castle, Target, Crown } from 'lucide-react';
+import { useSound } from '@/hooks/useSound';
 
 interface GameMode {
   id: string;
@@ -24,16 +25,22 @@ const gameModes: GameMode[] = [
 const Games = () => {
   const { childProfile } = useAuth();
   const navigate = useNavigate();
+  const { playClick } = useSound();
   const currentChapter = childProfile?.current_chapter || 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-island-sky to-background p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#0d1b4b] via-[#1a3a6b] to-[#2d6eb5] p-4">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/map')} className="font-display">
+        <div className="flex items-center gap-3 mb-6 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { playClick(); navigate('/map'); }}
+            className="font-display text-white hover:text-white hover:bg-white/20"
+          >
             <ArrowLeft className="w-4 h-4 mr-1" /> Térkép
           </Button>
-          <h1 className="text-3xl font-display text-foreground">🎮 Játékok</h1>
+          <h1 className="text-3xl font-display text-white">🎮 Játékok</h1>
         </div>
 
         <div className="grid gap-4">
@@ -42,29 +49,29 @@ const Games = () => {
             return (
               <motion.div
                 key={game.id}
-                whileHover={unlocked ? { scale: 1.02 } : {}}
+                whileHover={unlocked ? { scale: 1.04 } : {}}
                 whileTap={unlocked ? { scale: 0.98 } : {}}
               >
                 <button
-                  onClick={() => unlocked && navigate(`/game/${game.id}`)}
+                  onClick={() => { if (unlocked) { playClick(); navigate(`/game/${game.id}`); } }}
                   disabled={!unlocked}
-                  className={`w-full p-6 rounded-2xl border-3 text-left flex items-center gap-4 transition-all ${
+                  className={`w-full p-6 rounded-2xl text-left flex items-center gap-4 transition-all border ${
                     unlocked
-                      ? 'bg-card border-accent hover:shadow-lg border-2'
-                      : 'bg-muted border-border opacity-50 cursor-not-allowed border-2'
+                      ? 'bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 hover:border-amber-400/60'
+                      : 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed'
                   }`}
                 >
                   <div className="text-4xl">{game.emoji}</div>
                   <div className="flex-1">
-                    <h3 className="font-display text-xl text-foreground flex items-center gap-2">
+                    <h3 className="font-display text-xl text-white flex items-center gap-2">
                       {game.title}
-                      {!unlocked && <Lock className="w-4 h-4 text-muted-foreground" />}
+                      {!unlocked && <Lock className="w-4 h-4 text-white/50" />}
                     </h3>
-                    <p className="text-muted-foreground text-sm mt-1">{game.description}</p>
+                    <p className="text-white/60 text-sm mt-1">{game.description}</p>
                     {!unlocked && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        🔒 {game.requiredChapter > 6 ? 'Fejezd be mind a 6 fejezetet!' : `Fejezd be a ${game.requiredChapter}. fejezetet!`}
-                      </p>
+                      <span className="inline-block mt-2 text-xs font-medium text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded-full px-3 py-0.5">
+                        🔒 {game.requiredChapter > 6 ? 'Fejezd be mind a 6 fejezetet!' : `${game.requiredChapter}. fejezet szükséges`}
+                      </span>
                     )}
                   </div>
                 </button>

@@ -17,7 +17,7 @@ const ProgressRing = ({ percent, size = 56, strokeWidth = 5, color }: { percent:
   const offset = circ - (percent / 100) * circ;
   return (
     <svg width={size} height={size} className="progress-ring -rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
     </svg>
@@ -77,17 +77,29 @@ const ParentDashboard = () => {
   const charInfo = childProfile ? CHARACTER_INFO[childProfile.character_id as keyof typeof CHARACTER_INFO] : null;
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 bg-white/5 backdrop-blur-md border-b border-white/10 rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/map')} className="font-display rounded-xl">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/map')}
+              className="font-display text-white hover:text-white hover:bg-white/20 rounded-xl"
+            >
               <ArrowLeft className="w-4 h-4 mr-1" /> Térkép
             </Button>
-            <h1 className="text-xl sm:text-2xl font-display text-foreground">Szülői felület</h1>
+            <h1 className="text-xl sm:text-2xl font-display text-white">Szülői felület</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut} className="rounded-xl font-display">Kijelentkezés</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={signOut}
+            className="rounded-xl font-display bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+          >
+            Kijelentkezés
+          </Button>
         </div>
 
         {childProfile && (
@@ -96,20 +108,22 @@ const ParentDashboard = () => {
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="isometric-card p-5 sm:p-6 mb-5 flex items-center gap-4"
+              className="bg-white/8 backdrop-blur-md border border-white/15 rounded-3xl shadow-xl p-5 sm:p-6 mb-5 flex items-center gap-4"
             >
               <CharacterSVG characterId={childProfile.character_id} size={80} />
               <div className="flex-1">
-                <h2 className="font-display text-xl text-card-foreground">{childProfile.character_name}</h2>
-                <p className="text-muted-foreground text-sm">{charInfo?.name} a {charInfo?.piece}</p>
+                <h2 className="font-display text-xl text-white">{childProfile.character_name}</h2>
+                <p className="text-white/60 text-sm">{charInfo?.name} a {charInfo?.piece}</p>
                 <div className="flex items-center gap-4 mt-2">
                   <div className="flex items-center gap-1">
-                    <Coins className="w-4 h-4 text-accent" />
-                    <span className="font-bold text-sm text-card-foreground">{childProfile.aranytaller}</span>
+                    <Coins className="w-4 h-4 text-amber-400" />
+                    <span className="font-bold text-lg text-amber-400">{childProfile.aranytaller}</span>
+                    <span className="text-white/50 text-xs ml-0.5">Aranytallér</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-accent fill-current" />
-                    <span className="font-bold text-sm text-card-foreground">{totalStars} csillag</span>
+                    <Star className="w-4 h-4 text-amber-400 fill-current" />
+                    <span className="font-bold text-lg text-amber-400">{totalStars}</span>
+                    <span className="text-white/50 text-xs ml-0.5">csillag</span>
                   </div>
                 </div>
               </div>
@@ -120,10 +134,10 @@ const ParentDashboard = () => {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="isometric-card p-5 sm:p-6 mb-5"
+              className="bg-white/8 backdrop-blur-md border border-white/15 rounded-3xl shadow-xl p-5 sm:p-6 mb-5"
             >
-              <h3 className="font-display text-lg text-card-foreground mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" /> Fejezetek ({completedChapters}/6)
+              <h3 className="font-display text-lg text-white mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-amber-400" /> Fejezetek ({completedChapters}/6)
               </h3>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {characterOrder.map((charId, i) => {
@@ -134,13 +148,13 @@ const ParentDashboard = () => {
                   return (
                     <div key={charId} className="flex flex-col items-center gap-1">
                       <div className="relative">
-                        <ProgressRing percent={pct} color={completed ? 'hsl(var(--primary))' : 'hsl(var(--accent))'} />
+                        <ProgressRing percent={pct} color={completed ? '#fbbf24' : 'rgba(255,255,255,0.4)'} />
                         <div className="absolute inset-0 flex items-center justify-center">
                           <CharacterSVG characterId={charId} size={32} />
                         </div>
                       </div>
-                      <span className="text-[10px] sm:text-xs font-display text-muted-foreground">{info.name}</span>
-                      <span className="text-[10px] font-bold text-card-foreground">{pct}%</span>
+                      <span className="text-[10px] sm:text-xs font-display text-white/60">{info.name}</span>
+                      <span className="text-[10px] font-bold text-amber-400">{pct}%</span>
                     </div>
                   );
                 })}
@@ -153,14 +167,14 @@ const ParentDashboard = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="isometric-card p-5"
+                className="bg-white/8 backdrop-blur-md border border-white/15 rounded-3xl shadow-xl p-5"
               >
-                <h3 className="font-display text-lg text-card-foreground mb-2">Képességek</h3>
+                <h3 className="font-display text-lg text-white mb-2">Képességek</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12, fontFamily: "'Baloo 2', cursive", fill: 'hsl(var(--foreground))' }} />
-                    <Radar name="Képesség" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} strokeWidth={2} />
+                    <PolarGrid stroke="rgba(255,255,255,0.2)" />
+                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12, fontFamily: "'Baloo 2', cursive", fill: 'rgba(255,255,255,0.8)' }} />
+                    <Radar name="Képesség" dataKey="value" stroke="#fbbf24" fill="#fbbf24" fillOpacity={0.25} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
               </motion.div>
@@ -169,9 +183,9 @@ const ParentDashboard = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="isometric-card p-5"
+                className="bg-white/8 backdrop-blur-md border border-white/15 rounded-3xl shadow-xl p-5"
               >
-                <h3 className="font-display text-lg text-card-foreground mb-3">Kvíz eredmények</h3>
+                <h3 className="font-display text-lg text-white mb-3">Kvíz eredmények</h3>
                 <div className="space-y-3">
                   {[
                     { label: 'Sakk (Logika)', correct: chessCorrect, total: chessTotal, icon: '♟️' },
@@ -182,15 +196,15 @@ const ParentDashboard = () => {
                     return (
                       <div key={q.label}>
                         <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="font-display text-card-foreground">{q.icon} {q.label}</span>
-                          <span className="font-bold text-card-foreground">{q.correct}/{q.total}</span>
+                          <span className="font-display text-white/80">{q.icon} {q.label}</span>
+                          <span className="font-bold text-amber-400">{q.correct}/{q.total}</span>
                         </div>
-                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${pct}%` }}
                             transition={{ duration: 0.8, ease: 'easeOut' }}
-                            className="h-full bg-primary rounded-full"
+                            className="h-full bg-amber-400 rounded-full"
                           />
                         </div>
                       </div>
@@ -205,11 +219,11 @@ const ParentDashboard = () => {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="isometric-card p-5"
+              className="bg-white/8 backdrop-blur-md border border-white/15 rounded-3xl shadow-xl p-5"
             >
-              <h3 className="font-display text-lg text-card-foreground mb-2">Sziget</h3>
-              <p className="text-3xl font-bold text-primary">{inventory?.length || 0}</p>
-              <p className="text-muted-foreground text-sm">tárgy elhelyezve a szigeten</p>
+              <h3 className="font-display text-lg text-white mb-2">Sziget</h3>
+              <p className="text-3xl font-bold text-amber-400">{inventory?.length || 0}</p>
+              <p className="text-white/60 text-sm">tárgy elhelyezve a szigeten</p>
             </motion.div>
           </>
         )}

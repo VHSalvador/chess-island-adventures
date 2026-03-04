@@ -10,6 +10,7 @@ import { CharacterSVG, CHARACTER_INFO } from '@/components/characters/CharacterS
 import { ChessMovementDemo } from '@/components/ChessMovementDemo';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, Star, Music, BookOpen, Swords, Sparkles, HelpCircle } from 'lucide-react';
+import { useSound } from '@/hooks/useSound';
 
 type Step = 'story' | 'movement' | 'adventure' | 'practice' | 'song' | 'badge';
 const STEPS: Step[] = ['story', 'movement', 'adventure', 'practice', 'song', 'badge'];
@@ -30,12 +31,22 @@ const STEP_ICONS: Record<Step, React.ReactNode> = {
   badge: <Star className="w-5 h-5" />,
 };
 
+const CHAPTER_BACKGROUNDS: Record<number, string> = {
+  1: 'from-emerald-900 via-green-800 to-emerald-700',
+  2: 'from-amber-900 via-stone-800 to-amber-700',
+  3: 'from-purple-900 via-violet-800 to-purple-700',
+  4: 'from-yellow-800 via-amber-700 to-yellow-600',
+  5: 'from-orange-900 via-rose-800 to-orange-700',
+  6: 'from-teal-900 via-green-900 to-teal-800',
+};
+
 const Chapter = () => {
   const { id } = useParams<{ id: string }>();
   const chapterNum = parseInt(id || '1');
   const chapter = chapters[chapterNum - 1];
   const navigate = useNavigate();
   const { childProfile, refreshChildProfile } = useAuth();
+  const { playClick, playCorrect, playWrong, playBadge } = useSound();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -43,13 +54,14 @@ const Chapter = () => {
   const [answered, setAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [chapterComplete, setChapterComplete] = useState(false);
+  const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   const chapterQuizzes = quizQuestions.filter(q => q.chapterNumber === chapterNum);
   const currentQuiz = chapterQuizzes[quizIndex];
   const step = STEPS[currentStep];
 
   if (!chapter) {
-    return <div className="min-h-screen flex items-center justify-center">Fejezet nem található</div>;
+    return <div className="min-h-screen flex items-center justify-center text-white">Fejezet nem található</div>;
   }
 
   const info = CHARACTER_INFO[chapter.characterId as keyof typeof CHARACTER_INFO];
@@ -61,10 +73,14 @@ const Chapter = () => {
     const correct = optionIndex === currentQuiz.correctIndex;
 
     if (correct) {
+      playCorrect();
+      setQuizFeedback('correct');
       setQuizScore(prev => prev + currentQuiz.reward);
-      toast.success(`✅ Helyes! +${currentQuiz.reward} Aranytallér!`);
+      toast.success(`Helyes! +${currentQuiz.reward} Aranytallér!`);
     } else {
-      toast.error('❌ Nem jó, de ne add fel!');
+      playWrong();
+      setQuizFeedback('wrong');
+      toast.error('Nem jó, de ne add fel!');
     }
 
     if (childProfile) {
@@ -81,6 +97,7 @@ const Chapter = () => {
   };
 
   const nextQuiz = () => {
+    setQuizFeedback(null);
     if (quizIndex < chapterQuizzes.length - 1) {
       setQuizIndex(prev => prev + 1);
       setAnswered(false);
@@ -92,15 +109,14 @@ const Chapter = () => {
 
   const completeChapter = async () => {
     if (!childProfile) return;
+    playBadge();
     setChapterComplete(true);
 
-    // Award coins
     await supabase.from('child_profiles').update({
       aranytaller: (childProfile.aranytaller || 0) + quizScore + 10,
       current_chapter: Math.max(childProfile.current_chapter, chapterNum + 1),
     }).eq('id', childProfile.id);
 
-    // Update progress
     await supabase.from('chapter_progress').upsert({
       child_profile_id: childProfile.id,
       chapter_number: chapterNum,
@@ -109,7 +125,6 @@ const Chapter = () => {
       stars_earned: 1,
     }, { onConflict: 'child_profile_id,chapter_number' });
 
-    // Create next chapter progress if needed
     if (chapterNum < 6) {
       await supabase.from('chapter_progress').upsert({
         child_profile_id: childProfile.id,
@@ -126,21 +141,30 @@ const Chapter = () => {
       case 'story':
         return (
           <div className="text-center space-y-6">
-            <div className="animate-float">
+            <motion.div
+              className="animate-float"
+              animate={
+                quizFeedback === 'correct'
+                  ? { y: [0, -20, 0] }
+                  : quizFeedback === 'wrong'
+                  ? { x: [0, -5, 5, -5, 5, 0] }
+                  : { y: 0 }
+              }
+            >
               <CharacterSVG characterId={chapter.characterId} size={140} className="mx-auto" />
+            </motion.div>
+            <h2 className="text-2xl font-display text-white">{chapter.title}</h2>
+            <div className="bg-black/20 rounded-2xl p-6 border border-white/20 text-left">
+              <p className="font-display text-lg text-white italic whitespace-pre-line">{chapter.poem}</p>
             </div>
-            <h2 className="text-2xl font-display text-foreground">{chapter.title}</h2>
-            <div className="bg-muted rounded-2xl p-6 text-left">
-              <p className="font-display text-lg text-foreground italic whitespace-pre-line">{chapter.poem}</p>
-            </div>
-            <p className="text-lg text-foreground leading-relaxed">{chapter.story}</p>
+            <p className="text-lg text-white/90 leading-relaxed">{chapter.story}</p>
           </div>
         );
       case 'movement':
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-display text-center text-foreground">Hogyan lép {info.name}?</h2>
-            <p className="text-center text-lg text-foreground">{chapter.movementDescription}</p>
+            <h2 className="text-2xl font-display text-center text-white">Hogyan lép {info.name}?</h2>
+            <p className="text-center text-lg text-white/90">{chapter.movementDescription}</p>
             <ChessMovementDemo pieceType={chapter.movePattern} />
           </div>
         );
@@ -150,9 +174,9 @@ const Chapter = () => {
             <div className="animate-breathe">
               <CharacterSVG characterId={chapter.characterId} size={100} className="mx-auto" />
             </div>
-            <h2 className="text-2xl font-display text-foreground">{info.name} kalandja</h2>
-            <div className="bg-muted rounded-2xl p-6">
-              <p className="text-lg text-foreground leading-relaxed">{chapter.adventure}</p>
+            <h2 className="text-2xl font-display text-white">{info.name} kalandja</h2>
+            <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
+              <p className="text-lg text-white/90 leading-relaxed">{chapter.adventure}</p>
             </div>
           </div>
         );
@@ -161,22 +185,22 @@ const Chapter = () => {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-display text-foreground">Kvíz</h2>
-              <span className="text-sm text-muted-foreground font-medium">
+              <h2 className="text-xl font-display text-white">Kvíz</h2>
+              <span className="text-sm text-white/60 font-medium">
                 {quizIndex + 1} / {chapterQuizzes.length}
               </span>
             </div>
-            <div className="bg-muted rounded-2xl p-6">
-              <p className="text-xl font-display text-foreground mb-4">{currentQuiz.question}</p>
+            <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
+              <p className="text-xl font-display text-white mb-4">{currentQuiz.question}</p>
               <div className="space-y-3">
                 {currentQuiz.options.map((option, i) => {
                   let btnClass = 'w-full text-left p-4 rounded-xl border-2 text-lg font-body transition-all ';
                   if (answered) {
-                    if (i === currentQuiz.correctIndex) btnClass += 'border-primary bg-primary/20 text-foreground';
-                    else if (i === selectedAnswer) btnClass += 'border-destructive bg-destructive/20 text-foreground';
-                    else btnClass += 'border-border bg-card text-muted-foreground';
+                    if (i === currentQuiz.correctIndex) btnClass += 'border-emerald-400 bg-emerald-400/30 text-white';
+                    else if (i === selectedAnswer) btnClass += 'border-red-400 bg-red-400/30 text-white';
+                    else btnClass += 'border-white/10 bg-white/5 text-white/50';
                   } else {
-                    btnClass += 'border-border bg-card text-foreground hover:border-accent hover:bg-accent/10';
+                    btnClass += 'border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/60';
                   }
                   return (
                     <motion.button
@@ -193,7 +217,10 @@ const Chapter = () => {
                 })}
               </div>
               {answered && (
-                <Button onClick={nextQuiz} className="w-full mt-4 child-button bg-accent text-accent-foreground">
+                <Button
+                  onClick={() => { playClick(); nextQuiz(); }}
+                  className="w-full mt-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-display rounded-2xl border-0"
+                >
                   {quizIndex < chapterQuizzes.length - 1 ? 'Következő kérdés ➡️' : 'Tovább a dalhoz! 🎵'}
                 </Button>
               )}
@@ -203,19 +230,19 @@ const Chapter = () => {
       case 'song':
         return (
           <div className="text-center space-y-6">
-            <h2 className="text-2xl font-display text-foreground">🎵 {info.name} dala</h2>
-            <div className="bg-accent/20 rounded-2xl p-6 border-2 border-accent">
-              <p className="text-xl font-display text-foreground whitespace-pre-line">{chapter.song}</p>
+            <h2 className="text-2xl font-display text-white">🎵 {info.name} dala</h2>
+            <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
+              <p className="text-xl font-display text-white whitespace-pre-line">{chapter.song}</p>
             </div>
             <div className="space-y-3">
-              <h3 className="font-display text-lg text-foreground">Csináld velem! 💃</h3>
+              <h3 className="font-display text-lg text-white">Csináld velem! 💃</h3>
               {chapter.songActions.map((action, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.3 }}
-                  className="bg-card rounded-xl p-3 text-lg font-body text-foreground border border-border"
+                  className="bg-white/10 rounded-xl p-3 text-lg font-body text-white border border-white/20"
                 >
                   {i + 1}. {action}
                 </motion.div>
@@ -229,13 +256,16 @@ const Chapter = () => {
             {!chapterComplete ? (
               <>
                 <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 1, repeat: 2 }}>
-                  <Star className="w-24 h-24 mx-auto text-accent fill-current" />
+                  <Star className="w-24 h-24 mx-auto text-amber-400 fill-current" />
                 </motion.div>
-                <h2 className="text-3xl font-display text-foreground">Szuper munka! 🎉</h2>
-                <p className="text-lg text-foreground">
-                  Összegyűjtöttél <span className="font-bold text-accent">{quizScore + 10}</span> Aranytallért!
+                <h2 className="text-3xl font-display text-white">Szuper munka! 🎉</h2>
+                <p className="text-lg text-white/90">
+                  Összegyűjtöttél <span className="font-bold text-amber-400">{quizScore + 10}</span> Aranytallért!
                 </p>
-                <Button onClick={completeChapter} className="child-button bg-accent text-accent-foreground text-2xl px-12">
+                <Button
+                  onClick={completeChapter}
+                  className="child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-2xl px-12"
+                >
                   ⭐ Megszereztem a csillagot!
                 </Button>
               </>
@@ -246,12 +276,15 @@ const Chapter = () => {
                   animate={{ scale: 1, rotate: 360 }}
                   transition={{ type: 'spring', duration: 1 }}
                 >
-                  <Star className="w-32 h-32 mx-auto text-accent fill-current" />
+                  <Star className="w-32 h-32 mx-auto text-amber-400 fill-current" />
                 </motion.div>
-                <h2 className="text-3xl font-display text-foreground">
+                <h2 className="text-3xl font-display text-white">
                   {info.name} csillaga a tiéd! ⭐
                 </h2>
-                <Button onClick={() => navigate('/map')} className="child-button bg-primary text-primary-foreground text-xl">
+                <Button
+                  onClick={() => { playClick(); navigate('/map'); }}
+                  className="child-button bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-xl"
+                >
                   🗺️ Vissza a térképre
                 </Button>
               </>
@@ -262,28 +295,38 @@ const Chapter = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-island-sky to-background p-4">
-      {/* Progress bar */}
+    <div className={`min-h-screen bg-gradient-to-b ${CHAPTER_BACKGROUNDS[chapterNum] || 'from-blue-900 to-blue-700'} p-4`}>
+      {/* Header & Progress bar */}
       <div className="max-w-2xl mx-auto mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/map')} className="font-display">
+        <div className="flex items-center justify-between mb-2 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { playClick(); navigate('/map'); }}
+            className="font-display text-white hover:text-white hover:bg-white/20"
+          >
             <ArrowLeft className="w-4 h-4 mr-1" /> Térkép
           </Button>
-          <span className="font-display text-foreground">{chapter.title}</span>
+          <span className="font-display text-white">{chapter.title}</span>
         </div>
         <div className="flex gap-1">
           {STEPS.map((s, i) => (
             <div
               key={s}
               className={`flex-1 h-2 rounded-full transition-all ${
-                i < currentStep ? 'bg-primary' : i === currentStep ? 'bg-accent' : 'bg-muted'
+                i < currentStep ? 'bg-yellow-400' : i === currentStep ? 'bg-white' : 'bg-white/20'
               }`}
             />
           ))}
         </div>
         <div className="flex justify-between mt-1">
           {STEPS.map((s, i) => (
-            <span key={s} className={`text-xs ${i === currentStep ? 'text-accent-foreground font-bold' : 'text-muted-foreground'}`}>
+            <span
+              key={s}
+              className={`text-xs ${
+                i < currentStep ? 'text-white' : i === currentStep ? 'text-white font-bold' : 'text-white/50'
+              }`}
+            >
               {STEP_LABELS[s]}
             </span>
           ))}
@@ -298,7 +341,7 @@ const Chapter = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
-            className="bg-card rounded-3xl shadow-xl p-6 border-2 border-border"
+            className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 shadow-2xl text-white"
           >
             {renderStepContent()}
           </motion.div>
@@ -309,16 +352,16 @@ const Chapter = () => {
           <div className="flex gap-3 mt-4">
             {currentStep > 0 && (
               <Button
-                onClick={() => setCurrentStep(prev => prev - 1)}
+                onClick={() => { playClick(); setCurrentStep(prev => prev - 1); }}
                 variant="outline"
-                className="flex-1 child-button"
+                className="flex-1 child-button bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" /> Előző
               </Button>
             )}
             <Button
-              onClick={() => setCurrentStep(prev => prev + 1)}
-              className="flex-1 child-button bg-primary text-primary-foreground"
+              onClick={() => { playClick(); setCurrentStep(prev => prev + 1); }}
+              className="flex-1 child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
             >
               Következő <ArrowRight className="w-5 h-5 ml-2" />
             </Button>

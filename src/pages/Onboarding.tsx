@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 const characterIds: CharacterId[] = ['bence', 'erno', 'szonja', 'huba', 'vanda', 'balazs'];
 
 const Onboarding = () => {
-  const [step, setStep] = useState(0); // 0: choose character, 1: name it
+  const [step, setStep] = useState(0);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId | null>(null);
   const [characterName, setCharacterName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,20 +80,20 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-island-sky to-island-grass flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#0d1b4b] via-[#1a3a6b] to-[#2d6eb5] flex items-center justify-center p-4">
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="w-full max-w-2xl"
       >
-        <div className="bg-card rounded-3xl shadow-2xl p-8 border-4 border-accent">
+        <div className="bg-white/10 backdrop-blur-md border border-white/30 rounded-3xl shadow-2xl p-8">
           <AnimatePresence mode="wait">
             {step === 0 ? (
               <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="text-3xl font-display text-center text-foreground mb-2">
+                <h1 className="text-3xl font-display text-center text-white mb-2">
                   🏝️ Válassz egy hőst!
                 </h1>
-                <p className="text-center text-muted-foreground mb-6">
+                <p className="text-center text-white/70 mb-6">
                   Ő lesz a társad a Sakk-Szigeten!
                 </p>
 
@@ -107,18 +107,18 @@ const Onboarding = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setSelectedCharacter(id)}
-                        className={`p-4 rounded-2xl border-4 transition-all flex flex-col items-center gap-2 ${
+                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
                           isSelected
-                            ? 'border-accent bg-accent/20 shadow-lg'
-                            : 'border-border bg-card hover:border-accent/50'
+                            ? 'border-amber-400 bg-amber-400/20 shadow-lg shadow-amber-400/30'
+                            : 'border-white/20 bg-white/8 hover:bg-white/15 hover:border-white/50'
                         }`}
                       >
                         <div className="animate-breathe">
                           <CharacterSVG characterId={id} size={80} />
                         </div>
-                        <span className="font-display text-lg text-foreground">{info.name}</span>
-                        <span className="text-sm text-muted-foreground">{info.piece}</span>
-                        <span className="text-xs text-accent-foreground font-medium">„{info.motto}"</span>
+                        <span className="font-display text-lg text-white">{info.name}</span>
+                        <span className="text-sm text-white/70">{info.piece}</span>
+                        <span className="text-xs text-amber-300 font-medium">„{info.motto}"</span>
                       </motion.button>
                     );
                   })}
@@ -127,7 +127,7 @@ const Onboarding = () => {
                 <Button
                   onClick={() => selectedCharacter && setStep(1)}
                   disabled={!selectedCharacter}
-                  className="w-full mt-6 child-button bg-primary text-primary-foreground"
+                  className="w-full mt-6 child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-400 hover:to-orange-400 disabled:opacity-50"
                 >
                   Tovább ➡️
                 </Button>
@@ -138,10 +138,10 @@ const Onboarding = () => {
                   <div className="animate-float">
                     <CharacterSVG characterId={selectedCharacter!} size={120} />
                   </div>
-                  <h1 className="text-3xl font-display text-center text-foreground mt-4">
+                  <h1 className="text-3xl font-display text-center text-white mt-4">
                     Adj nevet a hősödnek!
                   </h1>
-                  <p className="text-muted-foreground text-center mt-1">
+                  <p className="text-white/70 text-center mt-1">
                     {CHARACTER_INFO[selectedCharacter!].name} a {CHARACTER_INFO[selectedCharacter!].piece} — mi legyen a neve?
                   </p>
                 </div>
@@ -150,7 +150,7 @@ const Onboarding = () => {
                   value={characterName}
                   onChange={(e) => setCharacterName(e.target.value)}
                   placeholder={`pl. ${CHARACTER_INFO[selectedCharacter!].name}`}
-                  className="rounded-xl text-xl h-14 text-center font-display"
+                  className="rounded-xl text-xl h-14 text-center font-display bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-amber-400"
                   maxLength={20}
                   autoFocus
                 />
@@ -159,14 +159,14 @@ const Onboarding = () => {
                   <Button
                     onClick={() => setStep(0)}
                     variant="outline"
-                    className="flex-1 child-button"
+                    className="flex-1 child-button bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white"
                   >
                     ⬅️ Vissza
                   </Button>
                   <Button
                     onClick={handleFinish}
                     disabled={!characterName.trim() || loading}
-                    className="flex-1 child-button bg-accent text-accent-foreground"
+                    className="flex-1 child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-400 hover:to-orange-400 disabled:opacity-50"
                   >
                     {loading ? '⏳' : '🎉 Indulás!'}
                   </Button>
