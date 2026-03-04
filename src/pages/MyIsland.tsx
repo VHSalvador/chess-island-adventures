@@ -174,25 +174,14 @@ const MyIsland = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Island platform + hex grid ── */}
+      {/* ── Hex grid (floating on sky background) ── */}
       <div className="flex-1 flex items-center justify-center overflow-hidden">
-        <div
-          style={{
-            position: 'relative',
-            padding: '28px 36px 44px',
-            background: 'radial-gradient(ellipse 90% 80% at 50% 45%, #43a047 0%, #2e7d32 60%, #1b5e20 100%)',
-            borderRadius: '50%',
-            boxShadow: '0 6px 0 #6d4c41, 0 12px 0 #5d4037, 0 18px 0 #4e342e, 0 24px 32px rgba(0,0,0,0.5)',
-            border: '3px solid rgba(165,214,167,0.5)',
-          }}
-        >
-          <HexGrid
-            occupiedCells={occupiedCells}
-            placingMode={!!placingItem}
-            onCellClick={placeItem}
-            inventory={inventory || []}
-          />
-        </div>
+        <HexGrid
+          occupiedCells={occupiedCells}
+          placingMode={!!placingItem}
+          onCellClick={placeItem}
+          inventory={inventory || []}
+        />
       </div>
 
       {/* ── Shop panel ── */}

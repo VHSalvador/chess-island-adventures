@@ -132,8 +132,8 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
         className="absolute left-1/2 top-1/2"
         style={{
           transform: 'translate(-50%, -48%)',
-          width: 'min(680px, 95vw)',
-          height: 'min(520px, 80vw)',
+          width: 'min(760px, 98vw)',
+          height: 'min(580px, 85vw)',
           zIndex: 5,
           position: 'relative',
         }}

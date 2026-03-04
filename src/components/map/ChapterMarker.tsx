@@ -50,8 +50,8 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
         <motion.div
           className="absolute rounded-full"
           style={{
-            width: 88,
-            height: 88,
+            width: 66,
+            height: 66,
             top: -8,
             left: -8,
             background: 'radial-gradient(circle, rgba(255,215,0,0.35) 0%, rgba(255,215,0,0) 70%)',
@@ -67,8 +67,8 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
       <motion.button
         className="relative flex items-center justify-center rounded-full"
         style={{
-          width: 72,
-          height: 72,
+          width: 50,
+          height: 50,
           background: isLocked
             ? 'rgba(80,80,90,0.55)'
             : `radial-gradient(circle at 35% 30%, ${color}ee, ${color}99)`,
@@ -99,7 +99,7 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
             filter: isLocked ? 'grayscale(1) brightness(0.6)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
           }}
         >
-          <CharacterSVG characterId={characterId} size={48} />
+          <CharacterSVG characterId={characterId} size={32} />
         </div>
 
         {/* Lock icon overlay */}
@@ -139,9 +139,9 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
 
       {/* Name badge */}
       <motion.div
-        className="mt-2 px-2 py-0.5 rounded-full font-display text-white text-center whitespace-nowrap"
+        className="mt-1 px-2 py-0.5 rounded-full font-display text-white text-center whitespace-nowrap"
         style={{
-          fontSize: 11,
+          fontSize: 9,
           fontWeight: 700,
           background: isLocked ? 'rgba(100,100,110,0.65)' : `${color}cc`,
           border: isLocked ? '1px solid rgba(160,160,170,0.3)' : `1px solid ${color}88`,

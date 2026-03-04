@@ -8,7 +8,7 @@ import IslandItemSVG from './IslandItemSVG';
 
 const HEX_SIZE = 36;
 const ISO_Y = 0.55;
-const DEPTH = 14;
+const DEPTH = 20;
 
 // ---------------------------------------------------------------------------
 // Build a radius-2 hex cluster (19 tiles) using axial coordinates

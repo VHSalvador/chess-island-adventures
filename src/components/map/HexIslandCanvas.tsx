@@ -21,66 +21,87 @@ interface HexIslandCanvasProps {
 }
 
 // ---------------------------------------------------------------------------
-// Island tile layout
+// Island tile layout — computed programmatically
 // ---------------------------------------------------------------------------
 
-const ISLAND_TILES: TileDef[] = [
-  // Water ring (level 0, flat blue)
-  ...([
-    [-5,  2], [-5,  1], [-5,  0], [-5, -1],
-    [-4,  3], [-4,  2], [-4,  1], [-4,  0], [-4, -1], [-4, -2],
-    [-3,  4], [-3,  3], [-3, -2], [-3, -3],
-    [-2,  4], [-2, -3], [-2, -4],
-    [-1,  4], [-1, -4],
-    [ 0,  4], [ 0, -4],
-    [ 1,  3], [ 1, -4],
-    [ 2,  3], [ 2, -3],
-    [ 3,  2], [ 3, -2], [ 3, -3],
-    [ 4,  1], [ 4,  0], [ 4, -1], [ 4, -2],
-    [ 5,  0], [ 5, -1],
-  ] as [number, number][]).map(([q, r]) => ({ q, r, type: 'water' as const, level: 0 })),
+// Axial neighbors
+function axialNeighbors(q: number, r: number): Array<[number, number]> {
+  return [[q+1,r],[q-1,r],[q,r+1],[q,r-1],[q+1,r-1],[q-1,r+1]];
+}
 
-  // Sand fringe (level 1)
-  ...([
-    [-3,  2], [-3,  1], [-3,  0], [-3, -1],
-    [-2,  3], [-2, -2],
-    [-1,  3], [-1, -3],
-    [ 0,  3], [ 0, -3],
-    [ 1,  2], [ 1, -3],
-    [ 2,  2], [ 2, -2],
-    [ 3,  1], [ 3,  0], [ 3, -1],
-  ] as [number, number][]).map(([q, r]) => ({ q, r, type: 'sand' as const, level: 1 })),
-
-  // Trees (level 2)
-  ...([
-    [-2,  2],
-    [-1,  2], [-1,  1],
-    [ 0,  2], [ 0,  1],
-    [ 1,  1],
-    [ 2,  1],
-  ] as [number, number][]).map(([q, r]) => ({ q, r, type: 'tree' as const, level: 2 })),
-
-  // Grass (level 2)
-  ...([
-    [-2,  1],
-    [-2,  0],
-    [-1,  0],
-    [ 0,  0],
-    [ 0, -1],
-    [ 1,  0],
-    [ 1, -1],
-    [ 2,  0],
-    [ 2, -1],
-  ] as [number, number][]).map(([q, r]) => ({ q, r, type: 'grass' as const, level: 2 })),
-
-  // Chapter tiles (level 3) — one per chess character, well spread
-  { q: -2, r:  1, type: 'chapter', level: 3, chapterIndex: 0 }, // Bence  — west
-  { q:  0, r:  2, type: 'chapter', level: 3, chapterIndex: 1 }, // Ernő   — south coast
-  { q: -1, r: -1, type: 'chapter', level: 3, chapterIndex: 2 }, // Szonja — center-west
-  { q:  2, r: -1, type: 'chapter', level: 3, chapterIndex: 3 }, // Huba   — east
-  { q:  1, r:  2, type: 'chapter', level: 3, chapterIndex: 4 }, // Vanda  — south-east
-  { q:  2, r:  0, type: 'chapter', level: 3, chapterIndex: 5 }, // Balázs — center-east
+// Chapter positions: [q, r, chapterIndex]
+const CHAPTER_COORDS: Array<[number, number, number]> = [
+  [-4,  1, 0], // Bence  — far west
+  [ 3,  3, 1], // Ernő   — far south-east
+  [-3, -2, 2], // Szonja — north-west
+  [ 4, -1, 3], // Huba   — far east
+  [ 0, -3, 4], // Vanda  — far north
+  [ 0,  2, 5], // Balázs — south-center
 ];
+
+function buildIslandTiles(): TileDef[] {
+  // ── Island body (elliptical blob) ──────────────────────────────────────
+  const bodySet = new Set<string>();
+  for (let q = -5; q <= 5; q++) {
+    for (let r = -5; r <= 5; r++) {
+      const r2 = r - 0.5;
+      const norm = (q * q) / (4.2 * 4.2) + (r2 * r2) / (3.8 * 3.8);
+      if (norm <= 1.0) bodySet.add(`${q},${r}`);
+    }
+  }
+  // Ensure every chapter position is in the body
+  for (const [q, r] of CHAPTER_COORDS) bodySet.add(`${q},${r}`);
+
+  // ── Sand ring (1 neighbour shell outside body) ─────────────────────────
+  const sandSet = new Set<string>();
+  for (const key of bodySet) {
+    const [q, r] = key.split(',').map(Number);
+    for (const [nq, nr] of axialNeighbors(q, r)) {
+      const nk = `${nq},${nr}`;
+      if (!bodySet.has(nk)) sandSet.add(nk);
+    }
+  }
+
+  // ── Water ring (1 shell outside sand) ─────────────────────────────────
+  const waterSet = new Set<string>();
+  for (const key of sandSet) {
+    const [q, r] = key.split(',').map(Number);
+    for (const [nq, nr] of axialNeighbors(q, r)) {
+      const nk = `${nq},${nr}`;
+      if (!bodySet.has(nk) && !sandSet.has(nk)) waterSet.add(nk);
+    }
+  }
+
+  const chapterMap = new Map<string, number>();
+  for (const [q, r, idx] of CHAPTER_COORDS) chapterMap.set(`${q},${r}`, idx);
+
+  const tiles: TileDef[] = [];
+
+  for (const key of waterSet) {
+    const [q, r] = key.split(',').map(Number);
+    tiles.push({ q, r, type: 'water', level: 0 });
+  }
+
+  for (const key of sandSet) {
+    const [q, r] = key.split(',').map(Number);
+    tiles.push({ q, r, type: 'sand', level: 1 });
+  }
+
+  for (const key of bodySet) {
+    const [q, r] = key.split(',').map(Number);
+    if (chapterMap.has(key)) {
+      tiles.push({ q, r, type: 'chapter', level: 3, chapterIndex: chapterMap.get(key) });
+    } else {
+      // Tiles near the body edge → trees; inner tiles → grass
+      const dist = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+      tiles.push({ q, r, type: dist >= 3 ? 'tree' : 'grass', level: 2 });
+    }
+  }
+
+  return tiles;
+}
+
+const ISLAND_TILES: TileDef[] = buildIslandTiles();
 
 // ---------------------------------------------------------------------------
 // Colors
@@ -122,7 +143,7 @@ const CHAPTER_COLORS = ['#4CAF50', '#8B7355', '#9C5FBF', '#E8B830', '#E89830', '
 // ---------------------------------------------------------------------------
 
 const ISO_Y_SCALE = 0.55;
-const DEPTH_PER_LEVEL_NOMINAL = 10;
+const DEPTH_PER_LEVEL_NOMINAL = 13;
 const NOMINAL_HEX_SIZE = 40;
 
 // ---------------------------------------------------------------------------
