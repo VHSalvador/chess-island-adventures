@@ -27,6 +27,11 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
   const isCompleted = status === 'completed';
   const canInteract = !isLocked;
 
+  const handleClick = () => {
+    if (!canInteract) return;
+    setTimeout(() => onClick(), 220);
+  };
+
   return (
     <motion.div
       className="absolute flex flex-col items-center"
@@ -37,12 +42,18 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
         zIndex: 10,
       }}
       initial={{ opacity: 0, scale: 0.5, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: isLocked ? 0 : [0, -6, 0] }}
       transition={{
         type: 'spring',
         stiffness: 260,
         damping: 20,
         delay: animationDelay,
+        y: isLocked ? undefined : {
+          duration: 2.4,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: animationDelay,
+        },
       }}
     >
       {/* Outer glow ring for completed */}
@@ -86,7 +97,7 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
           filter: isLocked ? 'grayscale(0.8) brightness(0.7)' : 'none',
           flexShrink: 0,
         }}
-        onClick={canInteract ? onClick : undefined}
+        onClick={canInteract ? handleClick : undefined}
         whileHover={canInteract ? { scale: 1.12 } : {}}
         whileTap={canInteract ? { scale: 0.95 } : {}}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}

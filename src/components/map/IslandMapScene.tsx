@@ -144,6 +144,27 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
           onChapterPositions={setChapterPositions}
         />
 
+        {/* Water shimmer overlay — pointer-events:none so canvas clicks pass through */}
+        <motion.svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ zIndex: 6, opacity: 0.18 }}
+          viewBox="0 0 760 580"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <motion.path
+            d="M0,520 C120,505 240,535 360,520 C480,505 600,535 760,520 L760,580 L0,580 Z"
+            fill="#4ab0f5"
+            animate={{ x: ['0%', '-5%', '0%'] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.path
+            d="M0,535 C100,520 220,548 380,535 C520,520 640,548 760,535 L760,580 L0,580 Z"
+            fill="#2178cc"
+            animate={{ x: ['0%', '5%', '0%'] }}
+            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          />
+        </motion.svg>
+
         {chapterPositions.length === 6 &&
           characterOrder.map((charId, index) => {
             const pos = chapterPositions[index];

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -111,6 +112,20 @@ const Chapter = () => {
     if (!childProfile) return;
     playBadge();
     setChapterComplete(true);
+    confetti({
+      particleCount: 90,
+      spread: 75,
+      origin: { x: 0.5, y: 0.55 },
+      colors: ['#FFD700', '#FF6B6B', '#4CAF50', '#9C5FBF', '#FF9800'],
+    });
+    setTimeout(() => {
+      confetti({
+        particleCount: 60,
+        spread: 100,
+        origin: { x: 0.3, y: 0.6 },
+        colors: ['#FFD700', '#ffffff', '#4ab0f5'],
+      });
+    }, 350);
 
     await supabase.from('child_profiles').update({
       aranytaller: (childProfile.aranytaller || 0) + quizScore + 10,
