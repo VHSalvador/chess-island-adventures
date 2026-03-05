@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Undo2, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
+import PieceCollectGame from '@/components/games/PieceCollectGame';
 
 type Piece = { type: string; color: 'w' | 'b' } | null;
 
@@ -46,6 +47,8 @@ function getPawnMoves(board: Piece[][], row: number, col: number, color: 'w' | '
 
 const GamePlay = () => {
   const { gameId } = useParams();
+
+  if (gameId === 'piece-collect') return <PieceCollectGame />;
   const navigate = useNavigate();
   const [board, setBoard] = useState<Piece[][]>(createPawnWarBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
