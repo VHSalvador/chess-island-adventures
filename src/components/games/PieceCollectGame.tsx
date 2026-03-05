@@ -18,9 +18,10 @@ interface Level {
   tutorialText: string;
 }
 
-// Stars are placed so every one is reachable following the piece's movement rules.
-// Pawn level: 6×6 board — stars form a winding path forward from the start position.
-// Rook level: 8×8 board — stars scattered across the board; player must plan the route.
+// Pawn level rule: exactly ONE star per row so the pawn can always collect all of them.
+// Stars form a zigzag path; each consecutive star is exactly one diagonal step from the
+// previous. No double-step forward is allowed in collect mode (would skip the row-4 star).
+// Rook level: 8×8 board — stars scattered; player plans the route (rook reaches any square).
 const LEVELS: Level[] = [
   {
     id: 1,
@@ -28,7 +29,9 @@ const LEVELS: Level[] = [
     characterId: 'bence',
     boardSize: 6,
     startPos: [5, 2],
-    stars: [[4, 2], [4, 1], [3, 0], [3, 3], [2, 2], [1, 3], [0, 2]],
+    // One star per row 4→0, each reachable from the previous via one pawn step:
+    // [5,2]→[4,2]→[3,3]→[2,2]→[1,3]→[0,2]
+    stars: [[4, 2], [3, 3], [2, 2], [1, 3], [0, 2]],
     tutorialText: 'Bence előre lép, és átlósan is tud ütni! Gyűjtsd össze a csillagokat!',
   },
   {
@@ -64,12 +67,12 @@ function getLegalMoves(
   const B = boardSize;
 
   if (type === 'pawn') {
+    // Only one step forward — no double-step, which would allow skipping stars.
     if (row - 1 >= 0) {
       moves.push([row - 1, col]);
       if (col - 1 >= 0) moves.push([row - 1, col - 1]);
       if (col + 1 < B) moves.push([row - 1, col + 1]);
     }
-    if (row === B - 1 && row - 2 >= 0) moves.push([row - 2, col]);
   }
 
   if (type === 'rook') {
@@ -95,7 +98,7 @@ const PieceCollectGame: React.FC = () => {
   const [remainingStars, setRemainingStars] = useState<Set<string>>(() => initStars(LEVELS[0]));
   const [collectedCount, setCollectedCount] = useState(0);
   const [selected, setSelected] = useState(false);
-  const [phase, setPhase] = useState<'playing' | 'levelComplete' | 'allComplete'>('playing');
+  const [phase, setPhase] = useState<'playing' | 'levelComplete' | 'allComplete' | 'stuck'>('playing');
 
   const level = LEVELS[levelIndex];
   const info = CHARACTER_INFO[level.characterId as keyof typeof CHARACTER_INFO];
@@ -134,21 +137,33 @@ const PieceCollectGame: React.FC = () => {
     setPiecePos([row, col]);
     setSelected(false);
 
-    if (remainingStars.has(key)) {
+    const nextStars = new Set(remainingStars);
+    if (nextStars.has(key)) {
       playCorrect();
-      const next = new Set(remainingStars);
-      next.delete(key);
-      setRemainingStars(next);
+      nextStars.delete(key);
+      setRemainingStars(nextStars);
       setCollectedCount(c => c + 1);
 
-      if (next.size === 0) {
+      if (nextStars.size === 0) {
         setTimeout(() => {
           playBadge();
           setPhase(levelIndex + 1 >= LEVELS.length ? 'allComplete' : 'levelComplete');
         }, 350);
+        return;
       }
     }
-  }, [phase, piecePos, selected, legalMoveSet, remainingStars, levelIndex,
+
+    // For pawns: detect if all remaining stars are now behind the pawn (unreachable).
+    if (level.pieceType === 'pawn' && nextStars.size > 0) {
+      const allBehind = [...nextStars].every(k => {
+        const starRow = parseInt(k.split(',')[0]);
+        return starRow >= row; // pawn only moves forward (row decreases)
+      });
+      if (allBehind) {
+        setTimeout(() => setPhase('stuck'), 400);
+      }
+    }
+  }, [phase, piecePos, selected, legalMoveSet, remainingStars, levelIndex, level.pieceType,
       playClick, playCorrect, playWrong, playBadge]);
 
   const handleNextLevel = useCallback(() => {
@@ -161,6 +176,15 @@ const PieceCollectGame: React.FC = () => {
     setSelected(false);
     setPhase('playing');
   }, [levelIndex, playClick]);
+
+  const handleReset = useCallback(() => {
+    playClick();
+    setPiecePos(level.startPos);
+    setRemainingStars(initStars(level));
+    setCollectedCount(0);
+    setSelected(false);
+    setPhase('playing');
+  }, [level, playClick]);
 
   const cellSize = level.boardSize === 6 ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-10 h-10 sm:w-12 sm:h-12';
 
@@ -180,9 +204,14 @@ const PieceCollectGame: React.FC = () => {
           <span className="font-display text-white text-lg">
             ⭐ {collectedCount} / {totalStars}
           </span>
-          <span className="font-display text-white/60 text-sm">
-            {levelIndex + 1}. szint
-          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="font-display text-white/70 hover:text-white hover:bg-white/20 text-sm"
+          >
+            🔄 Újra
+          </Button>
         </div>
       </div>
 
@@ -262,6 +291,31 @@ const PieceCollectGame: React.FC = () => {
               })
             )}
           </div>
+
+          {/* Stuck overlay (pawn passed all remaining stars) */}
+          <AnimatePresence>
+            {phase === 'stuck' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 rounded-xl"
+              >
+                <div className="text-5xl mb-3">😅</div>
+                <p className="font-display text-white text-xl mb-2 text-center px-4">
+                  Jaj, lemaradtak csillagok!
+                </p>
+                <p className="text-white/70 text-sm mb-5 text-center px-4">
+                  Próbáld más irányból!
+                </p>
+                <Button
+                  onClick={handleReset}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-display text-lg px-8"
+                >
+                  🔄 Próbáljuk újra!
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Level complete / all complete overlay */}
           <AnimatePresence>
