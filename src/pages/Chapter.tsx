@@ -12,6 +12,7 @@ import { ChessMovementDemo } from '@/components/ChessMovementDemo';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, Star, Music, BookOpen, Swords, Sparkles, HelpCircle } from 'lucide-react';
 import { useSound } from '@/hooks/useSound';
+import { useSpeech } from '@/hooks/useSpeech';
 
 type Step = 'story' | 'movement' | 'adventure' | 'practice' | 'song' | 'badge';
 const STEPS: Step[] = ['story', 'movement', 'adventure', 'practice', 'song', 'badge'];
@@ -48,6 +49,7 @@ const Chapter = () => {
   const navigate = useNavigate();
   const { childProfile, refreshChildProfile } = useAuth();
   const { playClick, playCorrect, playWrong, playBadge } = useSound();
+  const { praiseCorrect, praiseBadge } = useSpeech();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -75,6 +77,7 @@ const Chapter = () => {
 
     if (correct) {
       playCorrect();
+      praiseCorrect();
       setQuizFeedback('correct');
       setQuizScore(prev => prev + currentQuiz.reward);
       toast.success(`Helyes! +${currentQuiz.reward} Aranytallér!`);
@@ -111,6 +114,7 @@ const Chapter = () => {
   const completeChapter = async () => {
     if (!childProfile) return;
     playBadge();
+    praiseBadge();
     setChapterComplete(true);
     confetti({
       particleCount: 90,

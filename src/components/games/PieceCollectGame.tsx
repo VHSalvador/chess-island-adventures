@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { CharacterSVG, CHARACTER_INFO } from '@/components/characters/CharacterSVG';
 import { useSound } from '@/hooks/useSound';
+import { useSpeech } from '@/hooks/useSpeech';
 
 type PieceType = 'pawn' | 'rook';
 
@@ -92,6 +93,7 @@ function initStars(level: Level): Set<string> {
 const PieceCollectGame: React.FC = () => {
   const navigate = useNavigate();
   const { playCorrect, playWrong, playBadge, playClick } = useSound();
+  const { praiseStar, praiseBadge } = useSpeech();
 
   const [levelIndex, setLevelIndex] = useState(0);
   const [piecePos, setPiecePos] = useState<[number, number]>(LEVELS[0].startPos);
@@ -140,6 +142,7 @@ const PieceCollectGame: React.FC = () => {
     const nextStars = new Set(remainingStars);
     if (nextStars.has(key)) {
       playCorrect();
+      praiseStar();
       nextStars.delete(key);
       setRemainingStars(nextStars);
       setCollectedCount(c => c + 1);
@@ -147,6 +150,7 @@ const PieceCollectGame: React.FC = () => {
       if (nextStars.size === 0) {
         setTimeout(() => {
           playBadge();
+          praiseBadge();
           setPhase(levelIndex + 1 >= LEVELS.length ? 'allComplete' : 'levelComplete');
         }, 350);
         return;
