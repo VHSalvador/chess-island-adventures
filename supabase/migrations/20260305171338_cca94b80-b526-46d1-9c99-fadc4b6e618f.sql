@@ -1,0 +1,1 @@
+ALTER TABLE public.chapter_progress ADD COLUMN quiz_index integer NOT NULL DEFAULT 0;

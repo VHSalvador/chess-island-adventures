@@ -21,6 +21,7 @@ export type Database = {
           completed: boolean
           created_at: string
           id: string
+          quiz_index: number
           stars_earned: number
           step: string
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           completed?: boolean
           created_at?: string
           id?: string
+          quiz_index?: number
           stars_earned?: number
           step?: string
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           completed?: boolean
           created_at?: string
           id?: string
+          quiz_index?: number
           stars_earned?: number
           step?: string
           updated_at?: string
