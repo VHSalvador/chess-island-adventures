@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,35 +59,45 @@ const Chapter = () => {
   const [chapterComplete, setChapterComplete] = useState(false);
   const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
 
-  // Load saved step on mount — resume where the child left off.
-  // Uses a ref so it only runs once even if childProfile reference changes.
-  const loadedRef = useRef(false);
+  // Load saved chapter + quiz progress on mount (and when chapter changes).
   useEffect(() => {
-    if (!childProfile || loadedRef.current) return;
-    loadedRef.current = true;
+    if (!childProfile) return;
+
+    let active = true;
     supabase
       .from('chapter_progress')
       .select('step, completed, quiz_index')
       .eq('child_profile_id', childProfile.id)
       .eq('chapter_number', chapterNum)
       .maybeSingle()
-      .then(({ data }) => {
-        if (!data || data.completed) return; // new chapter or replay → start fresh
+      .then(({ data, error }) => {
+        if (!active || error) return;
+        if (!data || data.completed) return;
+
         const idx = STEPS.indexOf(data.step as Step);
-        if (idx > 0) setCurrentStep(idx);
-        if (data.quiz_index && data.quiz_index > 0) setQuizIndex(data.quiz_index);
+        setCurrentStep(idx >= 0 ? idx : 0);
+        setQuizIndex(Math.max(data.quiz_index ?? 0, 0));
       });
-  }, [childProfile]);
+
+    return () => {
+      active = false;
+    };
+  }, [childProfile, chapterNum]);
 
   // Fire-and-forget: persist the current step in the background on every forward navigation.
-  const saveStep = useCallback((stepName: Step, qIdx = 0) => {
+  const saveStep = useCallback(async (stepName: Step, qIdx = 0) => {
     if (!childProfile) return;
-    supabase.from('chapter_progress').upsert({
+
+    const { error } = await supabase.from('chapter_progress').upsert({
       child_profile_id: childProfile.id,
       chapter_number: chapterNum,
       step: stepName,
       quiz_index: qIdx,
     } as any, { onConflict: 'child_profile_id,chapter_number' });
+
+    if (error) {
+      console.error('Failed to save chapter progress:', error);
+    }
   }, [childProfile, chapterNum]);
 
   const chapterQuizzes = quizQuestions.filter(q => q.chapterNumber === chapterNum);
@@ -129,6 +139,14 @@ const Chapter = () => {
         aranytaller_earned: correct ? currentQuiz.reward : 0,
       });
     }
+
+    // Persist immediately on answer as well, so leaving before clicking
+    // “Következő kérdés” still resumes correctly.
+    if (quizIndex < chapterQuizzes.length - 1) {
+      void saveStep('practice', quizIndex + 1);
+    } else {
+      void saveStep('song', 0);
+    }
   };
 
   const nextQuiz = () => {
@@ -138,11 +156,11 @@ const Chapter = () => {
       setQuizIndex(nextQIdx);
       setAnswered(false);
       setSelectedAnswer(null);
-      saveStep('practice', nextQIdx);
+      void saveStep('practice', nextQIdx);
     } else {
       const nextIndex = currentStep + 1;
       setCurrentStep(nextIndex);
-      saveStep(STEPS[nextIndex]);
+      void saveStep(STEPS[nextIndex]);
     }
   };
 
@@ -421,7 +439,7 @@ const Chapter = () => {
                 playClick();
                 const nextIndex = currentStep + 1;
                 setCurrentStep(nextIndex);
-                saveStep(STEPS[nextIndex]);
+                void saveStep(STEPS[nextIndex]);
               }}
               className="flex-1 child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
             >
