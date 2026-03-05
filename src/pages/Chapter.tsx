@@ -67,7 +67,7 @@ const Chapter = () => {
     loadedRef.current = true;
     supabase
       .from('chapter_progress')
-      .select('step, completed')
+      .select('step, completed, quiz_index')
       .eq('child_profile_id', childProfile.id)
       .eq('chapter_number', chapterNum)
       .maybeSingle()
@@ -75,17 +75,19 @@ const Chapter = () => {
         if (!data || data.completed) return; // new chapter or replay → start fresh
         const idx = STEPS.indexOf(data.step as Step);
         if (idx > 0) setCurrentStep(idx);
+        if (data.quiz_index && data.quiz_index > 0) setQuizIndex(data.quiz_index);
       });
   }, [childProfile]);
 
   // Fire-and-forget: persist the current step in the background on every forward navigation.
-  const saveStep = useCallback((stepName: Step) => {
+  const saveStep = useCallback((stepName: Step, qIdx = 0) => {
     if (!childProfile) return;
     supabase.from('chapter_progress').upsert({
       child_profile_id: childProfile.id,
       chapter_number: chapterNum,
       step: stepName,
-    }, { onConflict: 'child_profile_id,chapter_number' });
+      quiz_index: qIdx,
+    } as any, { onConflict: 'child_profile_id,chapter_number' });
   }, [childProfile, chapterNum]);
 
   const chapterQuizzes = quizQuestions.filter(q => q.chapterNumber === chapterNum);
@@ -132,9 +134,11 @@ const Chapter = () => {
   const nextQuiz = () => {
     setQuizFeedback(null);
     if (quizIndex < chapterQuizzes.length - 1) {
-      setQuizIndex(prev => prev + 1);
+      const nextQIdx = quizIndex + 1;
+      setQuizIndex(nextQIdx);
       setAnswered(false);
       setSelectedAnswer(null);
+      saveStep('practice', nextQIdx);
     } else {
       const nextIndex = currentStep + 1;
       setCurrentStep(nextIndex);
