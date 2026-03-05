@@ -127,8 +127,11 @@ const Chapter = () => {
       });
     }, 350);
 
+    await supabase.rpc('adjust_aranytaller', {
+      profile_id: childProfile.id,
+      delta: quizScore + 10,
+    });
     await supabase.from('child_profiles').update({
-      aranytaller: (childProfile.aranytaller || 0) + quizScore + 10,
       current_chapter: Math.max(childProfile.current_chapter, chapterNum + 1),
     }).eq('id', childProfile.id);
 

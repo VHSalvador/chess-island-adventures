@@ -93,10 +93,10 @@ const MyIsland = () => {
       grid_x: x,
       grid_y: y,
     });
-    await supabase
-      .from('child_profiles')
-      .update({ aranytaller: (childProfile.aranytaller || 0) - item.price })
-      .eq('id', childProfile.id);
+    await supabase.rpc('adjust_aranytaller', {
+      profile_id: childProfile.id,
+      delta: -item.price,
+    });
 
     setPlacingItem(null);
     await refreshChildProfile();
