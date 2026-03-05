@@ -249,27 +249,46 @@ const HexGrid: React.FC<HexGridProps> = ({
 
   useEffect(() => { redraw(); }, [redraw]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getAxialFromClient = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current!.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const { q, r } = screenToAxial(mx, my, HEX_SIZE, ORIGIN_X, ORIGIN_Y);
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    return screenToAxial(mx, my, HEX_SIZE, ORIGIN_X, ORIGIN_Y);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { q, r } = getAxialFromClient(e.clientX, e.clientY);
     const key = `${q}-${r}`;
     const valid = GRID_TILES.some(t => t.q === q && t.r === r);
     setHovered(valid ? key : null);
-  }, []);
+  }, [getAxialFromClient]);
 
   const handleMouseLeave = useCallback(() => { setHovered(null); }, []);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const { q, r } = screenToAxial(mx, my, HEX_SIZE, ORIGIN_X, ORIGIN_Y);
+    const { q, r } = getAxialFromClient(e.clientX, e.clientY);
     const key = `${q}-${r}`;
     const valid = GRID_TILES.some(t => t.q === q && t.r === r);
     if (valid && !occupiedCells.has(key)) onCellClick(q, r);
-  }, [occupiedCells, onCellClick]);
+  }, [getAxialFromClient, occupiedCells, onCellClick]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0];
+    const { q, r } = getAxialFromClient(touch.clientX, touch.clientY);
+    const key = `${q}-${r}`;
+    const valid = GRID_TILES.some(t => t.q === q && t.r === r);
+    setHovered(valid ? key : null);
+  }, [getAxialFromClient]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    const { q, r } = getAxialFromClient(touch.clientX, touch.clientY);
+    const key = `${q}-${r}`;
+    const valid = GRID_TILES.some(t => t.q === q && t.r === r);
+    if (valid && !occupiedCells.has(key)) onCellClick(q, r);
+    setHovered(null);
+  }, [getAxialFromClient, occupiedCells, onCellClick]);
 
   return (
     <div style={{ position: 'relative', width: CANVAS_W, height: CANVAS_H }}>
@@ -279,6 +298,8 @@ const HexGrid: React.FC<HexGridProps> = ({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       />
 
       {/* Item overlays — rendered as HTML so SVG animations work */}
