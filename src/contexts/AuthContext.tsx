@@ -50,7 +50,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Initialize from getSession — fires reliably on page load.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchChildProfile(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    // Handle subsequent auth changes (sign-in, sign-out, token refresh).
+    // Skip INITIAL_SESSION — already handled by getSession above.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
