@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "motion-utils": path.resolve(__dirname, "./node_modules/motion-utils/dist/cjs/index.js"),
+      "motion-utils": path.resolve(__dirname, "./node_modules/motion-utils/dist/es/index.mjs"),
     },
   },
   optimizeDeps: {
