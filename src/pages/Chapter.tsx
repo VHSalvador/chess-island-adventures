@@ -127,7 +127,7 @@ const Chapter = () => {
       });
     }, 350);
 
-    await supabase.rpc('adjust_aranytaller', {
+    await (supabase.rpc as any)('adjust_aranytaller', {
       profile_id: childProfile.id,
       delta: quizScore + 10,
     });

@@ -93,7 +93,7 @@ const MyIsland = () => {
       grid_x: x,
       grid_y: y,
     });
-    await supabase.rpc('adjust_aranytaller', {
+    await (supabase.rpc as any)('adjust_aranytaller', {
       profile_id: childProfile.id,
       delta: -item.price,
     });
