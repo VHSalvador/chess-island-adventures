@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,6 +59,35 @@ const Chapter = () => {
   const [chapterComplete, setChapterComplete] = useState(false);
   const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
 
+  // Load saved step on mount — resume where the child left off.
+  // Uses a ref so it only runs once even if childProfile reference changes.
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (!childProfile || loadedRef.current) return;
+    loadedRef.current = true;
+    supabase
+      .from('chapter_progress')
+      .select('step, completed')
+      .eq('child_profile_id', childProfile.id)
+      .eq('chapter_number', chapterNum)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data || data.completed) return; // new chapter or replay → start fresh
+        const idx = STEPS.indexOf(data.step as Step);
+        if (idx > 0) setCurrentStep(idx);
+      });
+  }, [childProfile]);
+
+  // Fire-and-forget: persist the current step in the background on every forward navigation.
+  const saveStep = useCallback((stepName: Step) => {
+    if (!childProfile) return;
+    supabase.from('chapter_progress').upsert({
+      child_profile_id: childProfile.id,
+      chapter_number: chapterNum,
+      step: stepName,
+    }, { onConflict: 'child_profile_id,chapter_number' });
+  }, [childProfile, chapterNum]);
+
   const chapterQuizzes = quizQuestions.filter(q => q.chapterNumber === chapterNum);
   const currentQuiz = chapterQuizzes[quizIndex];
   const step = STEPS[currentStep];
@@ -107,7 +136,9 @@ const Chapter = () => {
       setAnswered(false);
       setSelectedAnswer(null);
     } else {
-      setCurrentStep(prev => prev + 1);
+      const nextIndex = currentStep + 1;
+      setCurrentStep(nextIndex);
+      saveStep(STEPS[nextIndex]);
     }
   };
 
@@ -382,7 +413,12 @@ const Chapter = () => {
               </Button>
             )}
             <Button
-              onClick={() => { playClick(); setCurrentStep(prev => prev + 1); }}
+              onClick={() => {
+                playClick();
+                const nextIndex = currentStep + 1;
+                setCurrentStep(nextIndex);
+                saveStep(STEPS[nextIndex]);
+              }}
               className="flex-1 child-button bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
             >
               Következő <ArrowRight className="w-5 h-5 ml-2" />
