@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Coins, ShoppingBag, TreePine, Home, Flower2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import HexGrid from '@/components/island/HexGrid';
 import IslandItemSVG from '@/components/island/IslandItemSVG';
+import { useShopItems } from '@/hooks/data/useShopItems';
+import { useIslandInventoryQuery, usePlaceItem } from '@/hooks/data/useIslandInventory';
 
 const shopCategories = [
   { id: 'tree',       label: 'Fák',      icon: TreePine },
