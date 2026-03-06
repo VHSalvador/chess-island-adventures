@@ -61,27 +61,20 @@ const MyIsland = () => {
     toast.info('Koppints egy üres mezőre!');
   };
 
-  const placeItem = async (x: number, y: number) => {
+  const placeItem = (x: number, y: number) => {
     if (!placingItem || !childProfile) return;
     const item = shopItems?.find(s => s.item_name === placingItem.item_name);
     if (!item) return;
 
-    await supabase.from('island_inventory').insert({
-      child_profile_id: childProfile.id,
-      item_type:  placingItem.item_type,
-      item_name:  placingItem.item_name,
-      grid_x: x,
-      grid_y: y,
+    placeItemMutation.mutate({
+      profileId: childProfile.id,
+      itemType: placingItem.item_type,
+      itemName: placingItem.item_name,
+      gridX: x,
+      gridY: y,
+      price: item.price,
     });
-    await (supabase.rpc as any)('adjust_aranytaller', {
-      profile_id: childProfile.id,
-      delta: -item.price,
-    });
-
     setPlacingItem(null);
-    await refreshChildProfile();
-    queryClient.invalidateQueries({ queryKey: ['island-inventory'] });
-    toast.success('Elhelyezve!');
   };
 
   // --- Render ---
