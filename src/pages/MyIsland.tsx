@@ -16,36 +16,16 @@ const shopCategories = [
 ];
 
 const MyIsland = () => {
-  const { childProfile, refreshChildProfile } = useAuth();
+  const { childProfile } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [showShop, setShowShop]             = useState(false);
   const [activeCategory, setActiveCategory] = useState('tree');
   const [placingItem, setPlacingItem]       = useState<{ item_type: string; item_name: string } | null>(null);
 
-  // --- Data queries ---
-
-  const { data: shopItems } = useQuery({
-    queryKey: ['shop-items'],
-    queryFn: async () => {
-      const { data } = await supabase.from('shop_items').select('*');
-      return data || [];
-    },
-  });
-
-  const { data: inventory } = useQuery({
-    queryKey: ['island-inventory', childProfile?.id],
-    queryFn: async () => {
-      if (!childProfile) return [];
-      const { data } = await supabase
-        .from('island_inventory')
-        .select('*')
-        .eq('child_profile_id', childProfile.id);
-      return data || [];
-    },
-    enabled: !!childProfile,
-  });
+  const { data: shopItems } = useShopItems();
+  const { data: inventory } = useIslandInventoryQuery(childProfile?.id);
+  const placeItemMutation = usePlaceItem();
 
   // --- Derived state ---
 
