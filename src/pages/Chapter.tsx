@@ -10,9 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CharacterSVG, CHARACTER_INFO } from '@/components/characters/CharacterSVG';
 import { ChessMovementDemo } from '@/components/ChessMovementDemo';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Star, Music, BookOpen, Swords, Sparkles, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, Music, BookOpen, Swords, Sparkles, HelpCircle, Volume2 } from 'lucide-react';
 import { useSound } from '@/hooks/useSound';
 import { useSpeech } from '@/hooks/useSpeech';
+import { chapterAudio } from '@/data/chapterAudio';
 
 type Step = 'story' | 'movement' | 'adventure' | 'practice' | 'song' | 'badge';
 const STEPS: Step[] = ['story', 'movement', 'adventure', 'practice', 'song', 'badge'];
@@ -50,6 +51,35 @@ const Chapter = () => {
   const { childProfile, refreshChildProfile } = useAuth();
   const { playClick, playCorrect, playWrong, playBadge } = useSound();
   const { praiseCorrect, praiseBadge } = useSpeech();
+  const audio = chapterAudio[chapterNum];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = useCallback((src?: string) => {
+    if (!src) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    audioRef.current = new Audio(src);
+    audioRef.current.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  const AudioButton = ({ src }: { src?: string }) => {
+    if (!src) return null;
+    return (
+      <button
+        onClick={() => playAudio(src)}
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 border border-white/30 transition-all flex-shrink-0"
+        aria-label="Felolvasás"
+      >
+        <Volume2 className="w-5 h-5 text-white" />
+      </button>
+    );
+  };
 
   const [currentStep, setCurrentStep] = useState(0);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -230,16 +260,25 @@ const Chapter = () => {
             </motion.div>
             <h2 className="text-2xl font-display text-white">{chapter.title}</h2>
             <div className="bg-black/20 rounded-2xl p-6 border border-white/20 text-left">
+              <div className="flex justify-end mb-2">
+                <AudioButton src={audio?.poem} />
+              </div>
               <p className="font-display text-lg text-white italic whitespace-pre-line">{chapter.poem}</p>
             </div>
-            <p className="text-lg text-white/90 leading-relaxed">{chapter.story}</p>
+            <div className="flex items-start gap-3">
+              <p className="text-lg text-white/90 leading-relaxed flex-1">{chapter.story}</p>
+              <AudioButton src={audio?.narrator[0]} />
+            </div>
           </div>
         );
       case 'movement':
         return (
           <div className="space-y-6">
             <h2 className="text-2xl font-display text-center text-white">Hogyan lép {info.name}?</h2>
-            <p className="text-center text-lg text-white/90">{chapter.movementDescription}</p>
+            <div className="flex items-start justify-center gap-3">
+              <p className="text-center text-lg text-white/90 flex-1">{chapter.movementDescription}</p>
+              <AudioButton src={audio?.narrator[1]} />
+            </div>
             <ChessMovementDemo pieceType={chapter.movePattern} />
           </div>
         );
@@ -251,6 +290,9 @@ const Chapter = () => {
             </div>
             <h2 className="text-2xl font-display text-white">{info.name} kalandja</h2>
             <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
+              <div className="flex justify-end mb-2">
+                <AudioButton src={audio?.narrator[2]} />
+              </div>
               <p className="text-lg text-white/90 leading-relaxed">{chapter.adventure}</p>
             </div>
           </div>
@@ -266,7 +308,10 @@ const Chapter = () => {
               </span>
             </div>
             <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
-              <p className="text-xl font-display text-white mb-4">{currentQuiz.question}</p>
+              <div className="flex items-start gap-3 mb-4">
+                <p className="text-xl font-display text-white flex-1">{currentQuiz.question}</p>
+                <AudioButton src={audio?.quiz[quizIndex]} />
+              </div>
               <div className="space-y-3">
                 {currentQuiz.options.map((option, i) => {
                   let btnClass = 'w-full text-left p-4 rounded-xl border-2 text-lg font-body transition-all ';
@@ -307,6 +352,9 @@ const Chapter = () => {
           <div className="text-center space-y-6">
             <h2 className="text-2xl font-display text-white">🎵 {info.name} dala</h2>
             <div className="bg-black/20 rounded-2xl p-6 border border-white/20">
+              <div className="flex justify-end mb-2">
+                <AudioButton src={audio?.song} />
+              </div>
               <p className="text-xl font-display text-white whitespace-pre-line">{chapter.song}</p>
             </div>
             <div className="space-y-3">
