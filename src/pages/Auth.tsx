@@ -89,8 +89,14 @@ const Auth = () => {
           <h1 className="text-3xl font-display text-center text-white mb-2">
             🏝️ Sakk-Sziget Hősei
           </h1>
-          <p className="text-center text-white/70 mb-6 font-body">
-            {isLogin ? 'Szülői bejelentkezés' : 'Új fiók létrehozása'}
+          <div className="bg-white/10 rounded-2xl px-4 py-3 mb-4 text-center border border-white/20">
+            <p className="font-display text-white text-sm">Hamarosan te is velünk játszol!</p>
+            <p className="text-white/60 font-body text-xs mt-1">
+              Kérd meg anyukádat vagy apukádat, hogy lépjen be!
+            </p>
+          </div>
+          <p className="text-center text-white/50 text-xs mb-4 font-body uppercase tracking-wide">
+            {isLogin ? '🔑 Szülői belépés' : 'Új szülői fiók létrehozása'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

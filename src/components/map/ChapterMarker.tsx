@@ -12,6 +12,7 @@ interface ChapterMarkerProps {
   position: { left: string; top: string };
   onClick: () => void;
   animationDelay?: number;
+  isPrimary?: boolean;
 }
 
 const ChapterMarker: React.FC<ChapterMarkerProps> = ({
@@ -22,6 +23,7 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
   position,
   onClick,
   animationDelay = 0,
+  isPrimary = false,
 }) => {
   const isLocked = status === 'locked';
   const isCompleted = status === 'completed';
@@ -56,6 +58,23 @@ const ChapterMarker: React.FC<ChapterMarkerProps> = ({
         },
       }}
     >
+      {/* Pulsing ring for the first unlocked chapter */}
+      {isPrimary && !isCompleted && !isLocked && (
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 74,
+            height: 74,
+            top: -12,
+            left: -12,
+            border: '3px solid rgba(255,215,0,0.8)',
+            boxShadow: '0 0 20px 4px rgba(255,215,0,0.5)',
+          }}
+          animate={{ scale: [1, 1.18, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+
       {/* Outer glow ring for completed */}
       {isCompleted && (
         <motion.div

@@ -166,24 +166,28 @@ const IslandMapScene: React.FC<IslandMapSceneProps> = ({ getChapterStatus, onCha
         </motion.svg>
 
         {chapterPositions.length === 6 &&
-          characterOrder.map((charId, index) => {
-            const pos = chapterPositions[index];
-            if (!pos) return null;
-            const status = getChapterStatus(index + 1);
-            const info = CHARACTER_INFO[charId];
-            return (
-              <ChapterMarker
-                key={charId}
-                characterId={charId}
-                characterName={info.name}
-                color={PIECE_COLORS[charId]}
-                status={status}
-                position={{ left: pos.x + 'px', top: pos.y + 'px' }}
-                onClick={() => onChapterClick(index)}
-                animationDelay={0.1 + index * 0.12}
-              />
-            );
-          })}
+          (() => {
+            const primaryIndex = characterOrder.findIndex((_, i) => getChapterStatus(i + 1) === 'unlocked');
+            return characterOrder.map((charId, index) => {
+              const pos = chapterPositions[index];
+              if (!pos) return null;
+              const status = getChapterStatus(index + 1);
+              const info = CHARACTER_INFO[charId];
+              return (
+                <ChapterMarker
+                  key={charId}
+                  characterId={charId}
+                  characterName={info.name}
+                  color={PIECE_COLORS[charId]}
+                  status={status}
+                  position={{ left: pos.x + 'px', top: pos.y + 'px' }}
+                  onClick={() => onChapterClick(index)}
+                  animationDelay={0.1 + index * 0.12}
+                  isPrimary={index === primaryIndex}
+                />
+              );
+            });
+          })()}
       </div>
 
       {/* Bottom wave band */}

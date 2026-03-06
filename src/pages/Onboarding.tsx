@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,16 @@ import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CharacterSVG, CHARACTER_INFO, type CharacterId } from '@/components/characters/CharacterSVG';
 import { toast } from 'sonner';
+import { onboardingAudio } from '@/data/onboardingAudio';
+
+const CHAR_DESCRIPTIONS: Record<CharacterId, string> = {
+  bence:  'Lépésről lépésre halad előre — sosem adja fel!',
+  erno:   'Egyenesen megy, mint a torony — mindig az igazat mondja!',
+  szonja: 'Átlósan suhan, mint a szél — imád alkotni!',
+  huba:   'L-alakban ugrik át mindenen — okos és gyors!',
+  vanda:  'Minden irányba elér, hogy barátain segítsen!',
+  balazs: 'Lassan, bölcsen lép — egy lépés is elég neki!',
+};
 
 const characterIds: CharacterId[] = ['bence', 'erno', 'szonja', 'huba', 'vanda', 'balazs'];
 
@@ -17,6 +27,22 @@ const Onboarding = () => {
   const [loading, setLoading] = useState(false);
   const { user, refreshChildProfile } = useAuth();
   const navigate = useNavigate();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = useCallback((src?: string) => {
+    if (!src) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    audioRef.current = new Audio(src);
+    audioRef.current.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    playAudio(onboardingAudio.characterSelectIntro);
+    return () => { audioRef.current?.pause(); };
+  }, [playAudio]);
 
   const handleFinish = async () => {
     if (!user || !selectedCharacter || !characterName.trim()) return;
@@ -71,7 +97,7 @@ const Onboarding = () => {
       if (!refreshedProfile) throw new Error('A profil frissítése sikertelen');
 
       toast.success('🎉 Üdv a Sakk-Szigeten!');
-      navigate('/map', { replace: true });
+      navigate('/intro', { replace: true });
     } catch (err: any) {
       toast.error(err.message || 'Hiba történt');
     } finally {
@@ -106,18 +132,23 @@ const Onboarding = () => {
                         key={id}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedCharacter(id)}
+                        onClick={() => {
+                          setSelectedCharacter(id);
+                          playAudio(onboardingAudio.characterIntros[id]);
+                        }}
                         className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
                           isSelected
                             ? 'border-amber-400 bg-amber-400/20 shadow-lg shadow-amber-400/30'
                             : 'border-white/20 bg-white/8 hover:bg-white/15 hover:border-white/50'
                         }`}
                       >
-                        <div className="animate-breathe">
+                        <div className={isSelected ? 'animate-float' : 'animate-breathe'}>
                           <CharacterSVG characterId={id} size={80} />
                         </div>
                         <span className="font-display text-lg text-white">{info.name}</span>
-                        <span className="text-sm text-white/70">{info.piece}</span>
+                        <span className="text-xs text-white/70 text-center leading-tight px-1">
+                          {CHAR_DESCRIPTIONS[id]}
+                        </span>
                         <span className="text-xs text-amber-300 font-medium">„{info.motto}"</span>
                       </motion.button>
                     );
@@ -133,23 +164,34 @@ const Onboarding = () => {
                 </Button>
               </motion.div>
             ) : (
-              <motion.div key="step1" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+              <motion.div key="step1" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                onAnimationComplete={() => playAudio(onboardingAudio.namingIntro)}
+              >
                 <div className="flex flex-col items-center mb-6">
-                  <div className="animate-float">
+                  <motion.div
+                    animate={characterName.length > 0
+                      ? { y: [0, -10, 0], rotate: [0, 5, -5, 0] }
+                      : { y: [0, -6, 0] }
+                    }
+                    transition={characterName.length > 0
+                      ? { duration: 0.6, repeat: Infinity, repeatDelay: 1.5 }
+                      : { duration: 2.5, repeat: Infinity, ease: 'easeInOut' }
+                    }
+                  >
                     <CharacterSVG characterId={selectedCharacter!} size={120} />
-                  </div>
+                  </motion.div>
                   <h1 className="text-3xl font-display text-center text-white mt-4">
-                    Adj nevet a hősödnek!
+                    Adj becenevet a barátodnak!
                   </h1>
                   <p className="text-white/70 text-center mt-1">
-                    {CHARACTER_INFO[selectedCharacter!].name} a {CHARACTER_INFO[selectedCharacter!].piece} — mi legyen a neve?
+                    Olyat, ami csak a tiétek!
                   </p>
                 </div>
 
                 <Input
                   value={characterName}
                   onChange={(e) => setCharacterName(e.target.value)}
-                  placeholder={`pl. ${CHARACTER_INFO[selectedCharacter!].name}`}
+                  placeholder={`pl. Erős ${CHARACTER_INFO[selectedCharacter!].name}, Kis ${CHARACTER_INFO[selectedCharacter!].name}...`}
                   className="rounded-xl text-xl h-14 text-center font-display bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-amber-400"
                   maxLength={20}
                   autoFocus

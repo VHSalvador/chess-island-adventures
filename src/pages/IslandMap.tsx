@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,11 +6,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { CHARACTER_INFO, CharacterSVG, type CharacterId } from '@/components/characters/CharacterSVG';
 import { motion } from 'framer-motion';
 import { Coins, Gamepad2, TreePine, LayoutDashboard } from 'lucide-react';
+import { toast } from 'sonner';
 import IslandMapScene from '@/components/map/IslandMapScene';
+import { onboardingAudio } from '@/data/onboardingAudio';
 
 const IslandMap = () => {
   const { childProfile, signOut } = useAuth();
   const navigate = useNavigate();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = useCallback((src?: string) => {
+    if (!src) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    audioRef.current = new Audio(src);
+    audioRef.current.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!childProfile?.id) return;
+    const key = `first_arrival_${childProfile.id}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      playAudio(onboardingAudio.mapFirstArrival);
+    }
+    return () => { audioRef.current?.pause(); };
+  }, [childProfile?.id, playAudio]);
 
   const { data: progress } = useQuery({
     queryKey: ['chapter-progress', childProfile?.id],
@@ -34,10 +57,13 @@ const IslandMap = () => {
   };
 
   const handleChapterClick = (index: number) => {
-    const status = getChapterStatus(index + 1);
-    if (status !== 'locked') {
-      navigate(`/chapter/${index + 1}`);
+    const chapterNum = index + 1;
+    const status = getChapterStatus(chapterNum);
+    if (status === 'locked') {
+      toast.info('Először fejezd be az előző fejezetet!', { duration: 2500 });
+      return;
     }
+    navigate(`/chapter/${chapterNum}`);
   };
 
   const charId = (childProfile?.character_id || 'bence') as CharacterId;
@@ -125,39 +151,43 @@ const IslandMap = () => {
               <TreePine className="w-4 h-4" />
               <span className="hidden sm:inline">Szigetem</span>
             </button>
-            <button
-              onClick={() => navigate('/parent')}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl font-display text-xs sm:text-sm text-white font-semibold transition-all duration-150 hover:scale-105 active:scale-95"
-              style={{
-                background: 'rgba(255,255,255,0.14)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              }}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Szülő</span>
-            </button>
           </motion.div>
         </div>
       </div>
 
-      {/* Logout button */}
-      <motion.button
-        onClick={signOut}
-        className="absolute bottom-4 right-4 text-xs z-30 px-3 py-1.5 rounded-full font-body transition-all duration-150 hover:scale-105 active:scale-95"
-        style={{
-          color: 'rgba(220,235,255,0.75)',
-          background: 'rgba(0,0,0,0.28)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.15)',
-        }}
+      {/* Bottom-right: parent dashboard + logout */}
+      <motion.div
+        className="absolute bottom-4 right-4 z-30 flex gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        Kijelentkezés
-      </motion.button>
+        <button
+          onClick={() => navigate('/parent')}
+          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-body transition-all duration-150 hover:scale-105 active:scale-95"
+          style={{
+            color: 'rgba(220,235,255,0.6)',
+            background: 'rgba(0,0,0,0.22)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <LayoutDashboard className="w-3 h-3" />
+          <span>Szülői felület</span>
+        </button>
+        <button
+          onClick={signOut}
+          className="text-xs px-3 py-1.5 rounded-full font-body transition-all duration-150 hover:scale-105 active:scale-95"
+          style={{
+            color: 'rgba(220,235,255,0.6)',
+            background: 'rgba(0,0,0,0.22)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          Kilépés
+        </button>
+      </motion.div>
     </div>
   );
 };
