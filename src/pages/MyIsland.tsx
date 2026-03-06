@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Coins, ShoppingBag, TreePine, Home, Flower2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import HexGrid from '@/components/island/HexGrid';
 import IslandItemSVG from '@/components/island/IslandItemSVG';
+import { useShopItems } from '@/hooks/data/useShopItems';
+import { useIslandInventoryQuery, usePlaceItem } from '@/hooks/data/useIslandInventory';
 
 const shopCategories = [
   { id: 'tree',       label: 'Fák',      icon: TreePine },
@@ -16,36 +16,16 @@ const shopCategories = [
 ];
 
 const MyIsland = () => {
-  const { childProfile, refreshChildProfile } = useAuth();
+  const { childProfile } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [showShop, setShowShop]             = useState(false);
   const [activeCategory, setActiveCategory] = useState('tree');
   const [placingItem, setPlacingItem]       = useState<{ item_type: string; item_name: string } | null>(null);
 
-  // --- Data queries ---
-
-  const { data: shopItems } = useQuery({
-    queryKey: ['shop-items'],
-    queryFn: async () => {
-      const { data } = await supabase.from('shop_items').select('*');
-      return data || [];
-    },
-  });
-
-  const { data: inventory } = useQuery({
-    queryKey: ['island-inventory', childProfile?.id],
-    queryFn: async () => {
-      if (!childProfile) return [];
-      const { data } = await supabase
-        .from('island_inventory')
-        .select('*')
-        .eq('child_profile_id', childProfile.id);
-      return data || [];
-    },
-    enabled: !!childProfile,
-  });
+  const { data: shopItems } = useShopItems();
+  const { data: inventory } = useIslandInventoryQuery(childProfile?.id);
+  const placeItemMutation = usePlaceItem();
 
   // --- Derived state ---
 
@@ -81,27 +61,20 @@ const MyIsland = () => {
     toast.info('Koppints egy üres mezőre!');
   };
 
-  const placeItem = async (x: number, y: number) => {
+  const placeItem = (x: number, y: number) => {
     if (!placingItem || !childProfile) return;
     const item = shopItems?.find(s => s.item_name === placingItem.item_name);
     if (!item) return;
 
-    await supabase.from('island_inventory').insert({
-      child_profile_id: childProfile.id,
-      item_type:  placingItem.item_type,
-      item_name:  placingItem.item_name,
-      grid_x: x,
-      grid_y: y,
+    placeItemMutation.mutate({
+      profileId: childProfile.id,
+      itemType: placingItem.item_type,
+      itemName: placingItem.item_name,
+      gridX: x,
+      gridY: y,
+      price: item.price,
     });
-    await (supabase.rpc as any)('adjust_aranytaller', {
-      profile_id: childProfile.id,
-      delta: -item.price,
-    });
-
     setPlacingItem(null);
-    await refreshChildProfile();
-    queryClient.invalidateQueries({ queryKey: ['island-inventory'] });
-    toast.success('Elhelyezve!');
   };
 
   // --- Render ---

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useCompleteChapter } from '@/hooks/data/useCompleteChapter';
 import { chapters } from '@/data/chapters';
 import { chapterAudio } from '@/data/chapterAudio';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,11 +26,12 @@ const Chapter = () => {
   const chapterNum = parseInt(id || '1');
   const chapter = chapters[chapterNum - 1];
   const navigate = useNavigate();
-  const { childProfile, refreshChildProfile } = useAuth();
+  const { childProfile } = useAuth();
   const { playClick, playBadge } = useSound();
   const { praiseBadge } = useSpeech();
   const audio = chapterAudio[chapterNum];
   const { playAudio } = useAudio();
+  const completeChapterMutation = useCompleteChapter();
 
   const { initialStep, initialQuizIndex, loaded, saveStep } = useChapterProgress(
     childProfile?.id,
@@ -72,16 +73,13 @@ const Chapter = () => {
       confetti({ particleCount: 60, spread: 100, origin: { x: 0.3, y: 0.6 }, colors: ['#FFD700', '#ffffff', '#4ab0f5'] });
     }, 350);
 
-    await (supabase.rpc as any)('adjust_aranytaller', { profile_id: childProfile.id, delta: quizScore + 10 });
-    await supabase.from('child_profiles').update({ current_chapter: Math.max(childProfile.current_chapter, chapterNum + 1) }).eq('id', childProfile.id);
-    await supabase.from('chapter_progress').upsert({ child_profile_id: childProfile.id, chapter_number: chapterNum, step: 'badge', completed: true, stars_earned: 1 }, { onConflict: 'child_profile_id,chapter_number' });
-
-    if (chapterNum < 6) {
-      await supabase.from('chapter_progress').upsert({ child_profile_id: childProfile.id, chapter_number: chapterNum + 1, step: 'story' }, { onConflict: 'child_profile_id,chapter_number' });
-    }
-
-    await refreshChildProfile();
-  }, [childProfile, chapterNum, quizScore, playBadge, praiseBadge, refreshChildProfile]);
+    completeChapterMutation.mutate({
+      profileId: childProfile.id,
+      chapterNum,
+      quizScore,
+      currentChapter: childProfile.current_chapter,
+    });
+  }, [childProfile, chapterNum, quizScore, playBadge, praiseBadge, completeChapterMutation]);
 
   if (!chapter) {
     return <div className="min-h-screen flex items-center justify-center text-white">Fejezet nem található</div>;
