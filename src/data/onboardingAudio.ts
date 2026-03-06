@@ -26,4 +26,12 @@ export const onboardingAudio = {
   screen4:       '',
   screen5:       '',
   mapFirstArrival: '',
+  hints: {
+    mapNextStep:      '',
+    chapterIntro:     '',
+    firstCoin:        '',
+    badgeComplete:    '',
+    islandFirstVisit: '',
+    islandPlaceItem:  '',
+  },
 };

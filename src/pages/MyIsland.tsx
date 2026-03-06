@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ import HexGrid from '@/components/island/HexGrid';
 import IslandItemSVG from '@/components/island/IslandItemSVG';
 import { useShopItems } from '@/hooks/data/useShopItems';
 import { useIslandInventoryQuery, usePlaceItem } from '@/hooks/data/useIslandInventory';
+import { onboardingAudio } from '@/data/onboardingAudio';
 
 const shopCategories = [
   { id: 'tree',       label: 'Fák',      icon: TreePine },
@@ -22,6 +23,36 @@ const MyIsland = () => {
   const [showShop, setShowShop]             = useState(false);
   const [activeCategory, setActiveCategory] = useState('tree');
   const [placingItem, setPlacingItem]       = useState<{ item_type: string; item_name: string } | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [shopHintVisible, setShopHintVisible] = useState(false);
+  const [placeHintVisible, setPlaceHintVisible] = useState(false);
+
+  const playAudio = useCallback((src?: string) => {
+    if (!src) return;
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+    audioRef.current = new Audio(src);
+    audioRef.current.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!childProfile?.id) return;
+    const key = `hint_island_shop_${childProfile.id}`;
+    if (!localStorage.getItem(key)) {
+      setShopHintVisible(true);
+      playAudio(onboardingAudio.hints.islandFirstVisit);
+    }
+    return () => { audioRef.current?.pause(); };
+  }, [childProfile?.id, playAudio]);
+
+  useEffect(() => {
+    if (!placingItem || !childProfile?.id) return;
+    const key = `hint_island_place_${childProfile.id}`;
+    if (!localStorage.getItem(key)) {
+      setPlaceHintVisible(true);
+      playAudio(onboardingAudio.hints.islandPlaceItem);
+    }
+  }, [placingItem, childProfile?.id, playAudio]);
 
   const { data: shopItems } = useShopItems();
   const { data: inventory } = useIslandInventoryQuery(childProfile?.id);
@@ -58,6 +89,7 @@ const MyIsland = () => {
     }
     setPlacingItem({ item_type: item.item_type, item_name: item.item_name });
     setShowShop(false);
+    setShopHintVisible(false);
     toast.info('Koppints egy üres mezőre!');
   };
 
@@ -74,6 +106,10 @@ const MyIsland = () => {
       gridY: y,
       price: item.price,
     });
+    if (childProfile?.id) {
+      localStorage.setItem(`hint_island_place_${childProfile.id}`, '1');
+    }
+    setPlaceHintVisible(false);
     setPlacingItem(null);
   };
 
@@ -112,7 +148,14 @@ const MyIsland = () => {
             </div>
             {/* Shop button */}
             <button
-              onClick={() => { setShowShop(s => !s); setPlacingItem(null); }}
+              onClick={() => {
+                if (childProfile?.id) {
+                  localStorage.setItem(`hint_island_shop_${childProfile.id}`, '1');
+                }
+                setShopHintVisible(false);
+                setShowShop(s => !s);
+                setPlacingItem(null);
+              }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-display text-sm font-bold transition-colors shadow-md"
             >
               <ShoppingBag className="w-4 h-4" />
@@ -121,6 +164,25 @@ const MyIsland = () => {
           </div>
         </div>
       </div>
+
+      {/* Shop hint bubble */}
+      <AnimatePresence>
+        {shopHintVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute top-20 right-3 sm:right-4 z-50 max-w-[200px]"
+          >
+            <div className="bg-amber-400 text-amber-900 font-display text-sm rounded-2xl px-4 py-3 shadow-lg relative">
+              Nyomd meg a Bolt gombot, és vásárolj az Aranytallérjeidből!
+              {/* Triangle pointing up-right */}
+              <div className="absolute -top-2 right-6 w-0 h-0"
+                style={{ borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid #FBBF24' }} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Placing banner ── */}
       <AnimatePresence>
@@ -148,7 +210,25 @@ const MyIsland = () => {
       </AnimatePresence>
 
       {/* ── Hex grid (floating on sky background) ── */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden">
+      <div className="flex-1 flex items-center justify-center overflow-hidden relative">
+        {/* Place hint bubble */}
+        <AnimatePresence>
+          {placeHintVisible && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-1/3 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+            >
+              <div className="bg-emerald-400 text-emerald-900 font-display text-sm rounded-2xl px-5 py-3 shadow-lg text-center whitespace-nowrap">
+                Koppints egy üres mezőre!
+                {/* Triangle pointing down */}
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0"
+                  style={{ borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid #34D399' }} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <HexGrid
           occupiedCells={occupiedCells}
           placingMode={!!placingItem}

@@ -1,10 +1,10 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CHARACTER_INFO, CharacterSVG, type CharacterId } from '@/components/characters/CharacterSVG';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Gamepad2, TreePine, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import IslandMapScene from '@/components/map/IslandMapScene';
@@ -14,6 +14,7 @@ const IslandMap = () => {
   const { childProfile, signOut } = useAuth();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showMapHint, setShowMapHint] = useState(false);
 
   const playAudio = useCallback((src?: string) => {
     if (!src) return;
@@ -31,6 +32,11 @@ const IslandMap = () => {
     if (!localStorage.getItem(key)) {
       localStorage.setItem(key, '1');
       playAudio(onboardingAudio.mapFirstArrival);
+    }
+    const hintKey = `hint_map_tap_${childProfile.id}`;
+    if (!localStorage.getItem(hintKey)) {
+      const t = setTimeout(() => setShowMapHint(true), 1200);
+      return () => { clearTimeout(t); audioRef.current?.pause(); };
     }
     return () => { audioRef.current?.pause(); };
   }, [childProfile?.id, playAudio]);
@@ -56,7 +62,14 @@ const IslandMap = () => {
     return 'locked';
   };
 
+  const dismissMapHint = useCallback(() => {
+    if (!childProfile?.id) return;
+    localStorage.setItem(`hint_map_tap_${childProfile.id}`, '1');
+    setShowMapHint(false);
+  }, [childProfile?.id]);
+
   const handleChapterClick = (index: number) => {
+    dismissMapHint();
     const chapterNum = index + 1;
     const status = getChapterStatus(chapterNum);
     if (status === 'locked') {
@@ -154,6 +167,53 @@ const IslandMap = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* T1: Map tap hint bubble */}
+      <AnimatePresence>
+        {showMapHint && (
+          <motion.div
+            className="absolute bottom-20 left-1/2 z-40 flex flex-col items-center pointer-events-none"
+            style={{ transform: 'translateX(-50%)' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div
+              className="px-5 py-3 rounded-2xl text-center shadow-xl pointer-events-auto"
+              style={{
+                background: 'rgba(255,248,210,0.97)',
+                border: '2px solid rgba(255,200,60,0.7)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+                maxWidth: 260,
+              }}
+            >
+              <p className="font-display text-base text-amber-900 font-bold leading-snug">
+                👆 Koppints egy helyszínre a kalandhoz!
+              </p>
+              <p className="font-body text-xs text-amber-700 mt-1 leading-snug">
+                Az arany jelzés mutatja, hol tartasz.
+              </p>
+              <button
+                onClick={dismissMapHint}
+                className="mt-2 text-xs font-body text-amber-600 underline underline-offset-2"
+              >
+                Értem!
+              </button>
+            </div>
+            {/* Tail */}
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderTop: '12px solid rgba(255,200,60,0.7)',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom-right: parent dashboard + logout */}
       <motion.div

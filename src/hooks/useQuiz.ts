@@ -23,7 +23,8 @@ export function useQuiz(
   chapterNum: number,
   childProfileId: string | undefined,
   saveStep: (step: Step, quizIndex?: number) => Promise<void>,
-  initialQuizIndex: number
+  initialQuizIndex: number,
+  onFirstCorrect?: () => void
 ): UseQuizResult {
   const [quizIndex, setQuizIndex] = useState(initialQuizIndex);
   const [quizScore, setQuizScore] = useState(0);
@@ -50,6 +51,7 @@ export function useQuiz(
         setQuizFeedback('correct');
         setQuizScore(prev => prev + currentQuiz.reward);
         toast.success(`Helyes! +${currentQuiz.reward} Aranytallér!`);
+        onFirstCorrect?.();
       } else {
         playWrong();
         setQuizFeedback('wrong');
@@ -74,7 +76,7 @@ export function useQuiz(
         void saveStep('song', 0);
       }
     },
-    [answered, currentQuiz, childProfileId, chapterNum, quizIndex, chapterQuizzes.length, saveStep, playCorrect, playWrong, praiseCorrect]
+    [answered, currentQuiz, childProfileId, chapterNum, quizIndex, chapterQuizzes.length, saveStep, playCorrect, playWrong, praiseCorrect, onFirstCorrect]
   );
 
   const nextQuiz = useCallback(

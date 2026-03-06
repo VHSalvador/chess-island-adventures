@@ -10,6 +10,7 @@ interface BadgeStepProps {
   chapterComplete: boolean;
   onComplete: () => void;
   onNavigateMap: () => void;
+  onNavigateMyIsland: () => void;
 }
 
 export const BadgeStep: React.FC<BadgeStepProps> = ({
@@ -18,6 +19,7 @@ export const BadgeStep: React.FC<BadgeStepProps> = ({
   chapterComplete,
   onComplete,
   onNavigateMap,
+  onNavigateMyIsland,
 }) => {
   const info = CHARACTER_INFO[characterId as keyof typeof CHARACTER_INFO];
   return (
@@ -50,12 +52,25 @@ export const BadgeStep: React.FC<BadgeStepProps> = ({
           <h2 className="text-3xl font-display text-white">
             {info.name} csillaga a tiéd! ⭐
           </h2>
-          <Button
-            onClick={onNavigateMap}
-            className="child-button bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 text-xl"
-          >
-            🗺️ Vissza a térképre
-          </Button>
+          <p className="text-lg text-white/80">
+            Összegyűjtöttél{' '}
+            <span className="font-bold text-amber-400">{quizScore + 10}</span>{' '}
+            Aranytallért!
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={onNavigateMyIsland}
+              className="child-button bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 text-lg"
+            >
+              🏝️ Szigetem
+            </Button>
+            <Button
+              onClick={onNavigateMap}
+              className="child-button bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0 text-lg"
+            >
+              🗺️ Térkép
+            </Button>
+          </div>
         </>
       )}
     </div>
