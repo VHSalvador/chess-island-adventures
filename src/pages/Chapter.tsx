@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useCompleteChapter } from '@/hooks/data/useCompleteChapter';
 import { chapters } from '@/data/chapters';
 import { chapterAudio } from '@/data/chapterAudio';
 import { motion, AnimatePresence } from 'framer-motion';
