@@ -26,11 +26,12 @@ const Chapter = () => {
   const chapterNum = parseInt(id || '1');
   const chapter = chapters[chapterNum - 1];
   const navigate = useNavigate();
-  const { childProfile, refreshChildProfile } = useAuth();
+  const { childProfile } = useAuth();
   const { playClick, playBadge } = useSound();
   const { praiseBadge } = useSpeech();
   const audio = chapterAudio[chapterNum];
   const { playAudio } = useAudio();
+  const completeChapterMutation = useCompleteChapter();
 
   const { initialStep, initialQuizIndex, loaded, saveStep } = useChapterProgress(
     childProfile?.id,
