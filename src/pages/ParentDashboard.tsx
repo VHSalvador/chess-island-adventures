@@ -1,13 +1,14 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CharacterSVG, CHARACTER_INFO, type CharacterId } from '@/components/characters/CharacterSVG';
 import { ArrowLeft, Star, Coins, BookOpen } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { useChapterProgressData } from '@/hooks/data/useChapterProgressData';
+import { useQuizResults } from '@/hooks/data/useQuizResults';
+import { useIslandInventoryQuery } from '@/hooks/data/useIslandInventory';
 
 const characterOrder: CharacterId[] = ['bence', 'erno', 'szonja', 'huba', 'vanda', 'balazs'];
 
@@ -28,35 +29,9 @@ const ParentDashboard = () => {
   const { childProfile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const { data: progress } = useQuery({
-    queryKey: ['parent-progress', childProfile?.id],
-    queryFn: async () => {
-      if (!childProfile) return [];
-      const { data } = await supabase.from('chapter_progress').select('*').eq('child_profile_id', childProfile.id).order('chapter_number');
-      return data || [];
-    },
-    enabled: !!childProfile,
-  });
-
-  const { data: quizResults } = useQuery({
-    queryKey: ['parent-quiz-results', childProfile?.id],
-    queryFn: async () => {
-      if (!childProfile) return [];
-      const { data } = await supabase.from('quiz_results').select('*').eq('child_profile_id', childProfile.id);
-      return data || [];
-    },
-    enabled: !!childProfile,
-  });
-
-  const { data: inventory } = useQuery({
-    queryKey: ['parent-inventory', childProfile?.id],
-    queryFn: async () => {
-      if (!childProfile) return [];
-      const { data } = await supabase.from('island_inventory').select('*').eq('child_profile_id', childProfile.id);
-      return data || [];
-    },
-    enabled: !!childProfile,
-  });
+  const { data: progress } = useChapterProgressData(childProfile?.id);
+  const { data: quizResults } = useQuizResults(childProfile?.id);
+  const { data: inventory } = useIslandInventoryQuery(childProfile?.id);
 
   const completedChapters = progress?.filter(p => p.completed).length || 0;
   const totalStars = progress?.reduce((sum, p) => sum + p.stars_earned, 0) || 0;

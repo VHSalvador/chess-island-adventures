@@ -73,16 +73,13 @@ const Chapter = () => {
       confetti({ particleCount: 60, spread: 100, origin: { x: 0.3, y: 0.6 }, colors: ['#FFD700', '#ffffff', '#4ab0f5'] });
     }, 350);
 
-    await (supabase.rpc as any)('adjust_aranytaller', { profile_id: childProfile.id, delta: quizScore + 10 });
-    await supabase.from('child_profiles').update({ current_chapter: Math.max(childProfile.current_chapter, chapterNum + 1) }).eq('id', childProfile.id);
-    await supabase.from('chapter_progress').upsert({ child_profile_id: childProfile.id, chapter_number: chapterNum, step: 'badge', completed: true, stars_earned: 1 }, { onConflict: 'child_profile_id,chapter_number' });
-
-    if (chapterNum < 6) {
-      await supabase.from('chapter_progress').upsert({ child_profile_id: childProfile.id, chapter_number: chapterNum + 1, step: 'story' }, { onConflict: 'child_profile_id,chapter_number' });
-    }
-
-    await refreshChildProfile();
-  }, [childProfile, chapterNum, quizScore, playBadge, praiseBadge, refreshChildProfile]);
+    completeChapterMutation.mutate({
+      profileId: childProfile.id,
+      chapterNum,
+      quizScore,
+      currentChapter: childProfile.current_chapter,
+    });
+  }, [childProfile, chapterNum, quizScore, playBadge, praiseBadge, completeChapterMutation]);
 
   if (!chapter) {
     return <div className="min-h-screen flex items-center justify-center text-white">Fejezet nem található</div>;
