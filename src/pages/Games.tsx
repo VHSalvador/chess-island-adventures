@@ -17,7 +17,7 @@ interface GameMode {
 
 const gameModes: GameMode[] = [
   { id: 'pawn-war', title: 'Gyalogháború', description: 'Csak gyalogokkal! Ki éri el előbb a túlsó oldalt?', icon: <Swords className="w-8 h-8" />, requiredChapter: 1, emoji: '⚔️' },
-  { id: 'capture-castle', title: 'Kastélyfoglalás', description: 'Üsd ki az ellenfél figuráit!', icon: <Castle className="w-8 h-8" />, requiredChapter: 2, emoji: '🏰' },
+  { id: 'capture-castle', title: 'Kastélyfoglalás', description: 'Üsd ki az ellenfél figuráit!', icon: <Castle className="w-8 h-8" />, requiredChapter: 7, emoji: '🏰' },
   { id: 'piece-collect', title: 'Csillaggyűjtés', description: 'Mozgasd a figurát és gyűjtsd össze a csillagokat!', icon: <Target className="w-8 h-8" />, requiredChapter: 3, emoji: '⭐' },
   { id: 'full-game', title: 'Teljes Sakkjátszma', description: 'Játssz teljes sakkot az AI ellen!', icon: <Crown className="w-8 h-8" />, requiredChapter: 7, emoji: '👑' },
 ];

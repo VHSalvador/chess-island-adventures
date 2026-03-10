@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Undo2, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import PieceCollectGame from '@/components/games/PieceCollectGame';
+import CastleCaptureGame from '@/components/games/CastleCaptureGame';
 
 type Piece = { type: string; color: 'w' | 'b' } | null;
 
@@ -64,6 +65,7 @@ const GamePlay = () => {
   }, [selected, board, turn]);
 
   if (gameId === 'piece-collect') return <PieceCollectGame />;
+  if (gameId === 'capture-castle') return <CastleCaptureGame />;
 
   const isLegal = (r: number, c: number) => legalMoves.some(([mr, mc]) => mr === r && mc === c);
 
