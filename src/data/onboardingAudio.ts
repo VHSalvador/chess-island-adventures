@@ -2,14 +2,14 @@
 // All paths are empty until audio files are provided.
 
 export const onboardingAudio = {
-  characterSelectIntro: '',
+  characterSelectIntro: '/Hangok/ValasszHost/mainText.mp3',
   characterIntros: {
-    bence:  '',
-    erno:   '',
-    szonja: '',
-    huba:   '',
-    vanda:  '',
-    balazs: '',
+    bence:  '/Hangok/ValasszHost/bence.mp3',
+    erno:   '/Hangok/ValasszHost/erno.mp3',
+    szonja: '/Hangok/ValasszHost/szonja.mp3',
+    huba:   '/Hangok/ValasszHost/huba.mp3',
+    vanda:  '/Hangok/ValasszHost/vanda.mp3',
+    balazs: '/Hangok/ValasszHost/balazs.mp3',
   } as Record<string, string>,
   namingIntro:   '',
   namingConfirm: '',

@@ -119,9 +119,18 @@ const Onboarding = () => {
                 <h1 className="text-3xl font-display text-center text-white mb-2">
                   🏝️ Válassz egy hőst!
                 </h1>
-                <p className="text-center text-white/70 mb-6">
-                  Ő lesz a társad a Sakk-Szigeten!
-                </p>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <p className="text-center text-white/70">
+                    Ő lesz a társad a Sakk-Szigeten!
+                  </p>
+                  <button
+                    onClick={() => playAudio(onboardingAudio.characterSelectIntro)}
+                    className="text-white/60 hover:text-amber-300 transition-colors"
+                    title="Hangos felolvasás"
+                  >
+                    🔊
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {characterIds.map((id) => {
