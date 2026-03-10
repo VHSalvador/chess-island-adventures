@@ -7,7 +7,7 @@ import { CharacterSVG, CHARACTER_INFO } from '@/components/characters/CharacterS
 import { useSound } from '@/hooks/useSound';
 import { useSpeech } from '@/hooks/useSpeech';
 
-type PieceType = 'pawn' | 'rook';
+type PieceType = 'pawn' | 'rook' | 'bishop' | 'knight' | 'queen' | 'king';
 
 interface Level {
   id: number;
@@ -19,10 +19,6 @@ interface Level {
   tutorialText: string;
 }
 
-// Pawn level rule: exactly ONE star per row so the pawn can always collect all of them.
-// Stars form a zigzag path; each consecutive star is exactly one diagonal step from the
-// previous. No double-step forward is allowed in collect mode (would skip the row-4 star).
-// Rook level: 8×8 board — stars scattered; player plans the route (rook reaches any square).
 const LEVELS: Level[] = [
   {
     id: 1,
@@ -30,8 +26,7 @@ const LEVELS: Level[] = [
     characterId: 'bence',
     boardSize: 6,
     startPos: [5, 2],
-    // One star per row 4→0, each reachable from the previous via one pawn step:
-    // [5,2]→[4,2]→[3,3]→[2,2]→[1,3]→[0,2]
+    // Zigzag path: [5,2]→[4,2]→[3,3]→[2,2]→[1,3]→[0,2]
     stars: [[4, 2], [3, 3], [2, 2], [1, 3], [0, 2]],
     tutorialText: 'Bence előre lép, és átlósan is tud ütni! Gyűjtsd össze a csillagokat!',
   },
@@ -44,20 +39,66 @@ const LEVELS: Level[] = [
     stars: [[7, 0], [0, 0], [0, 7], [7, 7], [3, 4], [4, 0]],
     tutorialText: 'Ernő egyenesen siet: előre, hátra, jobbra, balra! Tervezd meg az útvonalat!',
   },
+  {
+    id: 3,
+    pieceType: 'bishop',
+    characterId: 'szonja',
+    boardSize: 6,
+    startPos: [5, 0],
+    // All stars share the same diagonal color (row+col = 5, odd).
+    // Solution: [5,0]→[3,2]→[1,4]→[0,5]→[2,3]→[4,1]
+    stars: [[4, 1], [3, 2], [1, 4], [0, 5], [2, 3]],
+    tutorialText: 'Szonja csak átlósan tud lépni — de akármennyit egyszerre! Kövess minden ferde irányt!',
+  },
+  {
+    id: 4,
+    pieceType: 'knight',
+    characterId: 'huba',
+    boardSize: 6,
+    startPos: [5, 2],
+    // Forced L-jump chain: [5,2]→[3,1]→[1,2]→[2,4]→[4,5]→[5,3]
+    stars: [[3, 1], [1, 2], [2, 4], [4, 5], [5, 3]],
+    tutorialText: 'Huba okosan L-alakban ugrik: két lépés egy irányba, egy lépés oldalra! Ugorj sorban!',
+  },
+  {
+    id: 5,
+    pieceType: 'queen',
+    characterId: 'vanda',
+    boardSize: 7,
+    startPos: [6, 3],
+    stars: [[0, 3], [3, 0], [3, 6], [6, 0], [6, 6], [2, 2]],
+    tutorialText: 'Vanda mindenhova eljut: egyenesen és átlósan is! Tervezd meg a legjobb útvonalat!',
+  },
+  {
+    id: 6,
+    pieceType: 'king',
+    characterId: 'balazs',
+    boardSize: 5,
+    startPos: [4, 2],
+    // S-shaped winding path: [4,2]→[3,1]→[2,0]→[1,1]→[0,2]→[1,3]→[2,4]→[3,3]
+    stars: [[3, 1], [2, 0], [1, 1], [0, 2], [1, 3], [2, 4], [3, 3]],
+    tutorialText: 'Balázs bölcsen lép: egyszerre csak egyet, de bármely irányba! Figyeld a körültekintő útját!',
+  },
 ];
 
 const PIECE_EMOJI: Record<PieceType, string> = {
   pawn: '♟',
   rook: '♜',
+  bishop: '♝',
+  knight: '♞',
+  queen: '♛',
+  king: '♚',
 };
 
 const BG: Record<PieceType, string> = {
   pawn: 'from-emerald-900 via-green-800 to-emerald-700',
   rook: 'from-amber-900 via-stone-800 to-amber-700',
+  bishop: 'from-purple-900 via-violet-800 to-purple-700',
+  knight: 'from-yellow-900 via-amber-800 to-yellow-700',
+  queen: 'from-orange-900 via-amber-800 to-orange-700',
+  king: 'from-teal-900 via-emerald-800 to-teal-700',
 };
 
-// Pawn always moves "up" (row decreases). Diagonal moves are always allowed
-// in this teaching mode so the player can see the pawn's full movement potential.
 function getLegalMoves(
   type: PieceType,
   row: number,
@@ -66,9 +107,9 @@ function getLegalMoves(
 ): [number, number][] {
   const moves: [number, number][] = [];
   const B = boardSize;
+  const inBounds = (r: number, c: number) => r >= 0 && r < B && c >= 0 && c < B;
 
   if (type === 'pawn') {
-    // Only one step forward — no double-step, which would allow skipping stars.
     if (row - 1 >= 0) {
       moves.push([row - 1, col]);
       if (col - 1 >= 0) moves.push([row - 1, col - 1]);
@@ -83,7 +124,42 @@ function getLegalMoves(
     }
   }
 
+  if (type === 'bishop') {
+    for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      let r = row + dr, c = col + dc;
+      while (inBounds(r, c)) { moves.push([r, c]); r += dr; c += dc; }
+    }
+  }
+
+  if (type === 'knight') {
+    for (const [dr, dc] of [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]) {
+      const r = row + dr, c = col + dc;
+      if (inBounds(r, c)) moves.push([r, c]);
+    }
+  }
+
+  if (type === 'queen') {
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      let r = row + dr, c = col + dc;
+      while (inBounds(r, c)) { moves.push([r, c]); r += dr; c += dc; }
+    }
+  }
+
+  if (type === 'king') {
+    for (const [dr, dc] of [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]) {
+      const r = row + dr, c = col + dc;
+      if (inBounds(r, c)) moves.push([r, c]);
+    }
+  }
+
   return moves;
+}
+
+function getCellSize(boardSize: number): string {
+  if (boardSize <= 5) return 'w-16 h-16 sm:w-20 sm:h-20';
+  if (boardSize === 6) return 'w-14 h-14 sm:w-16 sm:h-16';
+  if (boardSize === 7) return 'w-11 h-11 sm:w-13 sm:h-13';
+  return 'w-10 h-10 sm:w-12 sm:h-12';
 }
 
 function initStars(level: Level): Set<string> {
@@ -126,9 +202,7 @@ const PieceCollectGame: React.FC = () => {
       return;
     }
 
-    if (!selected) {
-      return;
-    }
+    if (!selected) return;
 
     if (!legalMoveSet.has(key)) {
       setSelected(false);
@@ -157,18 +231,16 @@ const PieceCollectGame: React.FC = () => {
       }
     }
 
-    // For pawns: detect if all remaining stars are now behind the pawn (unreachable).
+    // Stuck detection: only for pawn (can only move forward)
     if (level.pieceType === 'pawn' && nextStars.size > 0) {
       const allBehind = [...nextStars].every(k => {
         const starRow = parseInt(k.split(',')[0]);
-        return starRow >= row; // pawn only moves forward (row decreases)
+        return starRow >= row;
       });
-      if (allBehind) {
-        setTimeout(() => setPhase('stuck'), 400);
-      }
+      if (allBehind) setTimeout(() => setPhase('stuck'), 400);
     }
   }, [phase, piecePos, selected, legalMoveSet, remainingStars, levelIndex, level.pieceType,
-      playClick, playCorrect, playWrong, playBadge]);
+      playClick, playCorrect, playWrong, playBadge, praiseStar, praiseBadge]);
 
   const handleNextLevel = useCallback(() => {
     playClick();
@@ -190,7 +262,7 @@ const PieceCollectGame: React.FC = () => {
     setPhase('playing');
   }, [level, playClick]);
 
-  const cellSize = level.boardSize === 6 ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-10 h-10 sm:w-12 sm:h-12';
+  const cellSize = getCellSize(level.boardSize);
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${BG[level.pieceType]} p-4`}>
@@ -216,6 +288,18 @@ const PieceCollectGame: React.FC = () => {
           >
             🔄 Újra
           </Button>
+        </div>
+
+        {/* Level progress dots */}
+        <div className="flex justify-center gap-2 mt-2">
+          {LEVELS.map((l, i) => (
+            <div
+              key={l.id}
+              className={`w-2.5 h-2.5 rounded-full transition-all ${
+                i < levelIndex ? 'bg-yellow-400' : i === levelIndex ? 'bg-white scale-125' : 'bg-white/30'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
@@ -296,7 +380,7 @@ const PieceCollectGame: React.FC = () => {
             )}
           </div>
 
-          {/* Stuck overlay (pawn passed all remaining stars) */}
+          {/* Stuck overlay */}
           <AnimatePresence>
             {phase === 'stuck' && (
               <motion.div
