@@ -1,15 +1,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { STEPS, STEP_LABELS } from './constants';
 
 interface ChapterHeaderProps {
   title: string;
   currentStep: number;
   onBack: () => void;
+  isPlaying?: boolean;
+  onMusicToggle?: () => void;
 }
 
-export const ChapterHeader: React.FC<ChapterHeaderProps> = ({ title, currentStep, onBack }) => (
+export const ChapterHeader: React.FC<ChapterHeaderProps> = ({ title, currentStep, onBack, isPlaying, onMusicToggle }) => (
   <div className="max-w-2xl mx-auto mb-4">
     <div className="flex items-center justify-between mb-2 bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
       <Button
@@ -21,6 +23,17 @@ export const ChapterHeader: React.FC<ChapterHeaderProps> = ({ title, currentStep
         <ArrowLeft className="w-4 h-4 mr-1" /> Térkép
       </Button>
       <span className="font-display text-white">{title}</span>
+      {onMusicToggle && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onMusicToggle}
+          className="text-white hover:text-white hover:bg-white/20"
+          title={isPlaying ? 'Zene ki' : 'Zene be'}
+        >
+          {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </Button>
+      )}
     </div>
     <div className="flex gap-1">
       {STEPS.map((s, i) => (

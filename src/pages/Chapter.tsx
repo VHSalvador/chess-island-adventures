@@ -9,6 +9,7 @@ import { onboardingAudio } from '@/data/onboardingAudio';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSound } from '@/hooks/useSound';
 import { useSpeech } from '@/hooks/useSpeech';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useChapterProgress } from '@/hooks/useChapterProgress';
 import { useQuiz } from '@/hooks/useQuiz';
 import { useAudio } from '@/components/chapter/AudioButton';
@@ -32,6 +33,7 @@ const Chapter = () => {
   const { childProfile } = useAuth();
   const { playClick, playBadge } = useSound();
   const { praiseBadge } = useSpeech();
+  const { isPlaying: musicPlaying, toggle: toggleMusic } = useBackgroundMusic('chapter', chapter?.characterId);
   const audio = chapterAudio[chapterNum];
   const { playAudio } = useAudio();
   const completeChapterMutation = useCompleteChapter();
@@ -164,7 +166,7 @@ const Chapter = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${CHAPTER_BACKGROUNDS[chapterNum] || 'from-blue-900 to-blue-700'} p-4`}>
-      <ChapterHeader title={chapter.title} currentStep={currentStep} onBack={handleBack} />
+      <ChapterHeader title={chapter.title} currentStep={currentStep} onBack={handleBack} isPlaying={musicPlaying} onMusicToggle={toggleMusic} />
 
       <AnimatePresence>
         {showChapterIntro && (

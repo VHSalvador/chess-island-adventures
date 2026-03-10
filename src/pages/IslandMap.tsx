@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CHARACTER_INFO, CharacterSVG, type CharacterId } from '@/components/characters/CharacterSVG';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Gamepad2, TreePine, LayoutDashboard } from 'lucide-react';
+import { Coins, Gamepad2, TreePine, LayoutDashboard, Volume2, VolumeX } from 'lucide-react';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { toast } from 'sonner';
 import IslandMapScene from '@/components/map/IslandMapScene';
 import { onboardingAudio } from '@/data/onboardingAudio';
@@ -15,6 +16,7 @@ const IslandMap = () => {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showMapHint, setShowMapHint] = useState(false);
+  const { isPlaying: musicPlaying, toggle: toggleMusic } = useBackgroundMusic('island');
 
   const playAudio = useCallback((src?: string) => {
     if (!src) return;
@@ -163,6 +165,19 @@ const IslandMap = () => {
             >
               <TreePine className="w-4 h-4" />
               <span className="hidden sm:inline">Szigetem</span>
+            </button>
+            <button
+              onClick={toggleMusic}
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl font-display text-xs sm:text-sm text-white font-semibold transition-all duration-150 hover:scale-105 active:scale-95"
+              style={{
+                background: 'rgba(255,255,255,0.14)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              }}
+              title={musicPlaying ? 'Zene ki' : 'Zene be'}
+            >
+              {musicPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
           </motion.div>
         </div>
