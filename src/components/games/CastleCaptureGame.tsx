@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Undo2, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Undo2, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSound } from '@/hooks/useSound';
 
@@ -18,11 +18,9 @@ const EMOJI: Record<Color, Record<PieceType, string>> = {
 
 function createBoard(): Board {
   const b: Board = Array.from({ length: 8 }, () => Array(8).fill(null));
-  // Black "castle" — standard back row + pawns
   const backRow: PieceType[] = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'];
   backRow.forEach((t, c) => { b[0][c] = { type: t, color: 'b' }; });
   for (let c = 0; c < 8; c++) b[1][c] = { type: 'P', color: 'b' };
-  // White "attackers" — standard starting position
   for (let c = 0; c < 8; c++) b[6][c] = { type: 'P', color: 'w' };
   backRow.forEach((t, c) => { b[7][c] = { type: t, color: 'w' }; });
   return b;
@@ -34,12 +32,10 @@ function legalMoves(board: Board, row: number, col: number): [number, number][] 
   const { type, color } = sq;
   const opp: Color = color === 'w' ? 'b' : 'w';
   const moves: [number, number][] = [];
-
   const inB = (r: number, c: number) => r >= 0 && r < 8 && c >= 0 && c < 8;
   const empty = (r: number, c: number) => !board[r][c];
   const enemy = (r: number, c: number) => board[r][c]?.color === opp;
   const ok = (r: number, c: number) => inB(r, c) && (empty(r, c) || enemy(r, c));
-
   const slide = (dr: number, dc: number) => {
     let r = row + dr, c = col + dc;
     while (inB(r, c)) {
@@ -48,7 +44,6 @@ function legalMoves(board: Board, row: number, col: number): [number, number][] 
       r += dr; c += dc;
     }
   };
-
   switch (type) {
     case 'P': {
       const dir = color === 'w' ? -1 : 1;
@@ -99,6 +94,13 @@ function hasKing(board: Board, color: Color): boolean {
   return board.some(row => row.some(sq => sq?.type === 'K' && sq.color === color));
 }
 
+function findKing(board: Board, color: Color): [number, number] | null {
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c]?.type === 'K' && board[r][c]?.color === color) return [r, c];
+  }
+  return null;
+}
+
 function aiMove(board: Board): Board | null {
   const all: { from: [number, number]; to: [number, number] }[] = [];
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
@@ -114,16 +116,125 @@ function aiMove(board: Board): Board | null {
   return applyMove(board, move.from, move.to);
 }
 
+// ── Story intro modal ──────────────────────────────────────────────────────────
+
+const StoryIntro: React.FC<{ onStart: () => void }> = ({ onStart }) => {
+  const [page, setPage] = useState(0);
+
+  const pages = [
+    {
+      title: 'A Fekete Sereg Támadása',
+      emoji: '🏰',
+      text: 'Ernő, a Bástya büszkén őrizte a Sakk-Sziget leghatalmasabb várát. Kőfalai eget vertek, tornyai csillogtak a napfényben.\n\nEgy éjszaka azonban sötét felhők ereszkedtek a szigetre. Egy titokzatos fekete sereg szállt partra a ködfátyolban — és hajnalra bevette a várat. A fekete Király bevonult a trónterembe, és becsukta maga után a kaput.',
+    },
+    {
+      title: 'A Figurák Összegyűlnek',
+      emoji: '⚔️',
+      text: 'Reggel a figurák összegyűltek a vár kapuja előtt. Ott volt Bence, aki sosem adja fel. Szonja, aki átlósan kerül minden akadályt. Huba, aki L-alakban ugrik át a falakon. Vanda, aki minden irányba eljut. És Balázs, a bölcs király.\n\n„Visszafoglaljuk a várat!" — mondta Vanda határozottan. „Mindenki tudja a saját titkos mozdulatát. Együtt erősebbek vagyunk!"',
+    },
+    {
+      title: 'A Te Küldetésed',
+      emoji: '👑',
+      text: 'Most te vezeted a fehér figurákat!\n\n🎯 Cél: keresd meg a fekete Királyt ♚ a táblán — ő az arany fénnyel ragyog — és üsd le!\n\n♟ Minden figura úgy mozog, ahogy a kalandjaiból megtanultad.\n\n💡 Ha elakadsz, nyomd meg a Tipp gombot — megmutatjuk, kit érdemes mozgatni.\n\nHa leütöd a fekete Királyt, a vár felszabadul!',
+    },
+  ];
+
+  const current = pages[page];
+  const isLast = page === pages.length - 1;
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <motion.div
+        key={page}
+        initial={{ opacity: 0, y: 30, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        className="w-full max-w-md bg-gradient-to-b from-stone-800 to-amber-900 border-2 border-amber-400/50 rounded-3xl p-7 shadow-2xl"
+      >
+        {/* Page dots */}
+        <div className="flex justify-center gap-2 mb-5">
+          {pages.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all duration-300 ${i === page ? 'w-6 h-2 bg-amber-400' : 'w-2 h-2 bg-white/25'}`}
+            />
+          ))}
+        </div>
+
+        <div className="text-5xl text-center mb-3">{current.emoji}</div>
+        <h2 className="font-display text-amber-300 text-xl text-center mb-4">{current.title}</h2>
+        <p className="font-body text-white/85 text-base leading-relaxed whitespace-pre-line mb-7">
+          {current.text}
+        </p>
+
+        <Button
+          onClick={() => isLast ? onStart() : setPage(p => p + 1)}
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-display text-xl py-4 rounded-2xl shadow-lg"
+        >
+          {isLast ? '⚔️ Kezdjük a rohamot!' : 'Tovább →'}
+        </Button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ── How-to-play collapsible ────────────────────────────────────────────────────
+
+const HowToPlay: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white/10 border border-white/20 rounded-2xl mb-3 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 font-display text-white text-sm"
+      >
+        <span>📖 Hogyan játssz?</span>
+        {open ? <ChevronUp className="w-4 h-4 text-white/60" /> : <ChevronDown className="w-4 h-4 text-white/60" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-2 text-sm font-body text-white/80 border-t border-white/10 pt-3">
+              <p>🎯 <strong className="text-white">Cél:</strong> üsd le a fekete Királyt ♚ — az arany fénnyel ragyogó figurát.</p>
+              <p>🖱️ <strong className="text-white">Mozgás:</strong> koppints egy fehér figurára, majd koppints oda, ahova lépjen (zöld/fehér pontok mutatják a lehetséges lépéseket).</p>
+              <p>⚔️ <strong className="text-white">Ütés:</strong> ha egy fehér keretes mezőre lépsz, leütöd az ott lévő fekete figurát.</p>
+              <p>♟ <strong className="text-white">Előlépés:</strong> ha egy gyalog eléri a túlsó oldalt, automatikusan Vezérré változik.</p>
+              <p>🔄 <strong className="text-white">Visszavonás:</strong> a Vissza gomb visszavonja a te és az ellenfél legutóbbi lépését.</p>
+              <p>💡 <strong className="text-white">Tipp:</strong> a Tipp gomb kijelöl egy mozgatható figurát, ha elakadtál.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 const CastleCaptureGame: React.FC = () => {
   const navigate = useNavigate();
   const { playClick, playCorrect, playWrong, playBadge } = useSound();
 
+  const [showIntro, setShowIntro] = useState(true);
   const [board, setBoard] = useState<Board>(createBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
   const [turn, setTurn] = useState<Color>('w');
   const [history, setHistory] = useState<Board[]>([]);
   const [gameOver, setGameOver] = useState<string | null>(null);
   const [aiThinking, setAiThinking] = useState(false);
+
+  const blackKingPos = useMemo(() => findKing(board, 'b'), [board]);
 
   const moves = useMemo(
     () => (selected ? legalMoves(board, selected[0], selected[1]) : []),
@@ -136,7 +247,6 @@ const CastleCaptureGame: React.FC = () => {
     setTimeout(() => {
       const next = aiMove(currentBoard);
       if (!next) { setGameOver('🎉 Nyertél! A vár elesett!'); setAiThinking(false); return; }
-
       if (!hasKing(next, 'w')) {
         setBoard(next);
         setGameOver('😔 A vár megvédték magukat...');
@@ -162,10 +272,9 @@ const CastleCaptureGame: React.FC = () => {
         setHistory(h => [...h, board]);
         setBoard(next);
         setSelected(null);
-
         if (captured?.type === 'K') {
           playBadge();
-          setGameOver('🎉 Megszerezted a várat! Nyertél!');
+          setGameOver('🎉 Megszerezted a várat! A Sakk-Sziget megmenekült!');
           return;
         }
         playCorrect();
@@ -206,14 +315,22 @@ const CastleCaptureGame: React.FC = () => {
     setHistory([]);
     setGameOver(null);
     setAiThinking(false);
+    setShowIntro(true);
     playClick();
   }, [playClick]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-900 via-stone-800 to-amber-700 p-4">
+
+      {/* Story intro modal */}
+      <AnimatePresence>
+        {showIntro && <StoryIntro onStart={() => setShowIntro(false)} />}
+      </AnimatePresence>
+
       <div className="max-w-lg mx-auto">
+
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <Button
             variant="ghost" size="sm"
             onClick={() => { playClick(); navigate('/games'); }}
@@ -224,12 +341,22 @@ const CastleCaptureGame: React.FC = () => {
           <h1 className="text-2xl font-display text-white">🏰 Kastélyfoglalás</h1>
         </div>
 
-        {/* Goal */}
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-2 mb-4 text-center">
-          <p className="font-display text-white text-sm">
-            Cél: üsd ki az ellenfél <span className="text-yellow-300">Királyát ♚</span> a várból!
+        {/* Goal banner */}
+        <div className="bg-amber-500/20 border border-amber-400/50 rounded-2xl px-4 py-2.5 mb-3 flex items-center justify-center gap-3">
+          <motion.span
+            className="text-2xl"
+            animate={{ scale: [1, 1.18, 1], rotate: [0, 8, -8, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ♚
+          </motion.span>
+          <p className="font-display text-amber-200 text-sm leading-snug text-center">
+            Cél: üsd le a <span className="text-yellow-300 font-bold">ragyogó fekete Királyt ♚</span> — ő védi a várat!
           </p>
         </div>
+
+        {/* How to play */}
+        <HowToPlay />
 
         {/* Game over banner */}
         <AnimatePresence>
@@ -237,12 +364,12 @@ const CastleCaptureGame: React.FC = () => {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="bg-white/20 border-2 border-amber-400 rounded-2xl p-4 text-center mb-4"
+              className="bg-white/20 border-2 border-amber-400 rounded-2xl p-4 text-center mb-3"
             >
-              <p className="text-2xl font-display text-white">{gameOver}</p>
+              <p className="text-2xl font-display text-white mb-3">{gameOver}</p>
               <Button
                 onClick={reset}
-                className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-display"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-display"
               >
                 🔄 Újra!
               </Button>
@@ -253,13 +380,13 @@ const CastleCaptureGame: React.FC = () => {
         {/* Turn indicator */}
         {!gameOver && (
           <p className="text-center text-white/70 font-body text-sm mb-3">
-            {aiThinking ? '🖤 A vár védekezik...' : '🤍 Te jössz! Foglald el a várat!'}
+            {aiThinking ? '🖤 A vár védekezik...' : '🤍 Te jössz! Vezesd a figurákat!'}
           </p>
         )}
 
         {/* Board */}
         <div className="flex justify-center mb-4">
-          <div className="inline-grid grid-cols-8 gap-0 rounded-xl overflow-hidden border-4 border-white/20 shadow-2xl">
+          <div className="inline-grid grid-cols-8 gap-0 rounded-xl overflow-hidden border-4 border-amber-400/40 shadow-2xl">
             {Array.from({ length: 8 }, (_, row) =>
               Array.from({ length: 8 }, (_, col) => {
                 const sq = board[row][col];
@@ -267,36 +394,98 @@ const CastleCaptureGame: React.FC = () => {
                 const isSel = selected?.[0] === row && selected?.[1] === col;
                 const isMove = moveSet.has(`${row},${col}`);
                 const isCapture = isMove && !!sq;
+                const isBlackKing = sq?.type === 'K' && sq?.color === 'b';
+                const isKingCell = blackKingPos?.[0] === row && blackKingPos?.[1] === col;
 
                 return (
-                  <button
+                  <div
                     key={`${row}-${col}`}
-                    onClick={() => handleClick(row, col)}
-                    className={[
-                      'w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center relative transition-all',
-                      isLight ? 'bg-amber-100' : 'bg-amber-700',
-                      isSel ? 'ring-4 ring-inset ring-white' : '',
-                    ].join(' ')}
+                    className="relative"
+                    style={{ width: 40, height: 40 }}
                   >
-                    {sq && (
-                      <span className={`text-xl sm:text-2xl leading-none select-none ${sq.color === 'b' && sq.type === 'K' ? 'drop-shadow-[0_0_6px_rgba(255,215,0,0.9)]' : ''}`}>
-                        {EMOJI[sq.color][sq.type]}
-                      </span>
+                    {/* Pulsing golden glow behind the black King's cell */}
+                    {isKingCell && (
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none z-0"
+                        style={{ background: 'rgba(255,200,0,0.55)', borderRadius: 0 }}
+                        animate={{ opacity: [0.45, 1, 0.45] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                      />
                     )}
-                    {isMove && !isCapture && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-3 h-3 rounded-full bg-white/50" />
-                      </div>
-                    )}
-                    {isCapture && (
-                      <div className="absolute inset-0 border-4 border-white/60 pointer-events-none" />
-                    )}
-                  </button>
+
+                    <button
+                      onClick={() => handleClick(row, col)}
+                      className={[
+                        'w-full h-full flex items-center justify-center relative z-10 transition-all',
+                        isKingCell ? '' : isLight ? 'bg-amber-100' : 'bg-amber-700',
+                        isSel ? 'ring-4 ring-inset ring-white' : '',
+                      ].join(' ')}
+                      style={isKingCell ? { background: 'transparent' } : undefined}
+                    >
+                      {sq && (
+                        <span
+                          className="leading-none select-none"
+                          style={{
+                            fontSize: isBlackKing ? 26 : 20,
+                            filter: isBlackKing
+                              ? 'drop-shadow(0 0 5px rgba(255,215,0,1)) drop-shadow(0 0 10px rgba(255,160,0,0.9))'
+                              : undefined,
+                          }}
+                        >
+                          {EMOJI[sq.color][sq.type]}
+                        </span>
+                      )}
+
+                      {/* Move dot */}
+                      {isMove && !isCapture && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-3 h-3 rounded-full bg-white/55" />
+                        </div>
+                      )}
+
+                      {/* Capture highlight */}
+                      {isCapture && (
+                        <div className="absolute inset-0 border-4 border-white/65 pointer-events-none" />
+                      )}
+
+                      {/* Extra pulsing ring around the King */}
+                      {isKingCell && (
+                        <motion.div
+                          className="absolute inset-0 pointer-events-none border-2 border-yellow-300"
+                          animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.08, 1] }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
+                    </button>
+                  </div>
                 );
               })
             )}
           </div>
         </div>
+
+        {/* Legend */}
+        {!gameOver && (
+          <div className="flex justify-center gap-4 mb-4 text-xs font-body text-white/60">
+            <span className="flex items-center gap-1">
+              <span
+                style={{
+                  fontSize: 16,
+                  filter: 'drop-shadow(0 0 4px rgba(255,215,0,1))',
+                }}
+              >♚</span>
+              = a célpont
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-white/55 inline-block" />
+              = szabad mező
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 border-2 border-white/65 inline-block" />
+              = ütheted
+            </span>
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex gap-3 justify-center">
