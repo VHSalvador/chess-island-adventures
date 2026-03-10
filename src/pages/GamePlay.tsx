@@ -47,8 +47,6 @@ function getPawnMoves(board: Piece[][], row: number, col: number, color: 'w' | '
 
 const GamePlay = () => {
   const { gameId } = useParams();
-
-  if (gameId === 'piece-collect') return <PieceCollectGame />;
   const navigate = useNavigate();
   const [board, setBoard] = useState<Piece[][]>(createPawnWarBoard);
   const [selected, setSelected] = useState<[number, number] | null>(null);
@@ -64,6 +62,8 @@ const GamePlay = () => {
     if (piece.type === 'P') return getPawnMoves(board, r, c, piece.color);
     return [];
   }, [selected, board, turn]);
+
+  if (gameId === 'piece-collect') return <PieceCollectGame />;
 
   const isLegal = (r: number, c: number) => legalMoves.some(([mr, mc]) => mr === r && mc === c);
 
