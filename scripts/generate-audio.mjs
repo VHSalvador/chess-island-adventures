@@ -225,7 +225,7 @@ function costReport(manifest) {
   console.log(`  ÖSSZESEN                 ${String(totalChars).padStart(5)} karakter`);
   console.log();
 
-  // ElevenLabs árak 2025 (eleven_multilingual_v2)
+  // ElevenLabs árak 2025 (eleven_multilingual_v3)
   // Ingyenes tier: 10 000 kar/hó
   // Starter: $5/hó → 30 000 kar
   // Creator: $22/hó → 100 000 kar
@@ -277,7 +277,7 @@ function generateSpeech(text, voiceId) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       text,
-      model_id: 'eleven_multilingual_v2',
+      model_id: 'eleven_multilingual_v3',
       voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
     });
     const options = {
