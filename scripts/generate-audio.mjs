@@ -5,7 +5,9 @@
  *
  * Hangok szerepe:
  *   narrator  → történet, mozgás leírás, kaland, kvíz kérdések, onboarding szöveg
- *   karakter  → mondóka (vers), dal  (a karakter saját hangján szólal meg)
+ *   karakter  → mondóka (vers)  (a karakter saját hangján szólal meg)
+ *
+ * ⚠  Dalok (${c}Dala.mp3) NEM generálódnak — azokat Gemini AI Music készíti!
  *
  * ── Futtatás ──────────────────────────────────────────────────────────────────
  *   node scripts/generate-audio.mjs --dry-run          # mindent megmutat, API hívás nélkül
@@ -176,9 +178,9 @@ function buildManifest() {
   for (const ch of CHAPTERS) {
     const c = ch.dir;
 
-    // Karakter saját hangján: mondóka + dal
+    // Karakter saját hangján: mondóka
     entries.push({ path: `${c}/${c}Mondoka.mp3`,     text: ch.poem,      voice: ch.id, label: `${ch.id} mondóka` });
-    entries.push({ path: `${c}/${c}Dala.mp3`,         text: ch.song,      voice: ch.id, label: `${ch.id} dal` });
+    // Dal: Gemini AI Music készíti — ElevenLabs nem generálja
 
     // Narrátor hangján: történet, mozgás, kaland
     entries.push({ path: `${c}/Narrator${c}1.mp3`,   text: ch.story,     voice: 'narrator', label: `${ch.id} történet` });
